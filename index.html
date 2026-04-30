@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Protector - Monitoramento</title>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a2e;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+        .card {
+            background: #16213e;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 10px;
+            display: inline-block;
+            min-width: 150px;
+        }
+        .valor {
+            font-size: 36px;
+            font-weight: bold;
+            color: #00ff88;
+        }
+        .status-ligado { color: #00ff88; }
+        .status-desligado { color: #ff4444; }
+    </style>
+</head>
+<body>
+    <h1>🔌 SMART PROTECTOR</h1>
+    <h3>📊 Monitoramento em Tempo Real</h3>
+    
+    <div class="card">
+        <div>⚡ Tensão</div>
+        <div class="valor" id="tensao">---</div>
+        <div>V</div>
+    </div>
+    <div class="card">
+        <div>🔌 Corrente</div>
+        <div class="valor" id="corrente">---</div>
+        <div>A</div>
+    </div>
+    <div class="card">
+        <div>⚡ Potência</div>
+        <div class="valor" id="potencia">---</div>
+        <div>W</div>
+    </div>
+    <div class="card">
+        <div>🔒 Estado</div>
+        <div class="valor" id="estado">---</div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCrTIZNk9aZxVHhYyOvBo3jdLX3GQ16jsk",
+            databaseURL: "https://smart-protector-77ffd-default-rtdb.firebaseio.com"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // Dados em tempo real
+        db.ref('/atual').on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                document.getElementById('tensao').innerText = data.tensao?.toFixed(1) || '---';
+                document.getElementById('corrente').innerText = data.corrente?.toFixed(2) || '---';
+                document.getElementById('potencia').innerText = data.potencia?.toFixed(0) || '---';
+                const estado = data.estado || 'DESLIGADO';
+                const estadoEl = document.getElementById('estado');
+                estadoEl.innerText = estado;
+                estadoEl.className = 'valor ' + (estado === 'LIGADO' ? 'status-ligado' : 'status-desligado');
+            }
+        });
+    </script>
+</body>
+</html>
