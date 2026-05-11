@@ -1,201 +1,102 @@
-<script>
-    const firebaseConfig = {
-        apiKey: "AIzaSyCrTIZNk9aZxVHhYyOvBo3jdLX3GQ16jsk",
-        databaseURL: "https://smart-protector-77ffd-default-rtdb.firebaseio.com"
-    };
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Smart Protector</title>
+    <meta charset="UTF-8">
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+</head>
+<body>
+    <h1>🔌 SMART PROTECTOR</h1>
     
-    if (!firebase.apps.length) {
-        firebase.initializeApp(firebaseConfig);
-    }
-    const db = firebase.database();
+    <div>
+        <h2>Dados em Tempo Real</h2>
+        <p>⚡ Tensão: <span id="tensao">---</span> V</p>
+        <p>🔌 Corrente: <span id="corrente">---</span> A</p>
+        <p>⚡ Potência: <span id="potencia">---</span> W</p>
+        <p>🔒 Estado: <span id="estado">---</span></p>
+    </div>
     
-    let dadosHistoricos = [];
-    let grafico;
+    <div>
+        <h2>📊 Estatísticas (últimos registros)</h2>
+        <p>📈 Média Tensão: <span id="media">---</span> V</p>
+        <p>📈 Máxima: <span id="maxima">---</span> V</p>
+        <p>📉 Mínima: <span id="minima">---</span> V</p>
+        <p>📝 Total registros: <span id="total">---</span></p>
+    </div>
     
-    // Dados em tempo real
-    db.ref('/atual').on('value', (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-            document.getElementById('tensao').innerText = parseFloat(data.tensao || 0).toFixed(1);
-            document.getElementById('corrente').innerText = parseFloat(data.corrente || 0).toFixed(2);
-            document.getElementById('potencia').innerText = parseFloat(data.potencia || 0).toFixed(0);
-            const estado = data.estado || 'DESLIGADO';
-            const estadoEl = document.getElementById('estado');
-            estadoEl.innerText = estado;
-            estadoEl.className = 'valor ' + (estado === 'LIGADO' ? 'status-ligado' : 'status-desligado');
-            document.getElementById('ultimaAtualizacao').innerText = new Date().toLocaleString();
-        }
-    });
+    <div>
+        <h2>📋 Últimos 20 registros</h2>
+        <table border="1" cellpadding="5" id="tabela">
+            <thead><tr><th>Data/Hora</th><th>Tensão (V)</th></tr></thead>
+            <tbody></tbody>
+        </table>
+    </div>
 
-    // Parser de data
-    function parseDataSegura(dataStr) {
-        if (!dataStr) return new Date();
-        if (!isNaN(dataStr)) return new Date(Number(dataStr) * (Number(dataStr) < 1e12 ? 1000 : 1));
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCrTIZNk9aZxVHhYyOvBo3jdLX3GQ16jsk",
+            databaseURL: "https://smart-protector-77ffd-default-rtdb.firebaseio.com"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
         
-        const meses = {"janeiro":0, "fevereiro":1, "março":2, "abril":3, "maio":4, "junho":5, "julho":6, "agosto":7, "setembro":8, "outubro":9, "novembro":10, "dezembro":11};
-        try {
-            const regex = /(\d{2})\s+de\s+([a-zç]+)\s+de\s+(\d{4})\s+-\s+(\d{2}):(\d{2})/i;
-            const match = String(dataStr).match(regex);
-            if (match) {
-                return new Date(match[3], meses[match[2].toLowerCase()], match[1], match[4], match[5]);
-            }
-        } catch(e) {}
-        
-        let parsed = new Date(String(dataStr).replace(' ', 'T'));
-        if (!isNaN(parsed.getTime())) return parsed;
-        return new Date();
-    }
-    
-    async function carregarHistorico(limiteHoras) {
-        document.getElementById('tbody').innerHTML = '<tr><td colspan="3">Carregando...</td></tr>';
-        
-        try {
-            const [tensaoSnap, correnteSnap, timestampSnap] = await Promise.all([
-                db.ref('/historico/tensao').once('value'),
-                db.ref('/historico/corrente').once('value'),
-                db.ref('/historico/timestamp').once('value')
-            ]);
-            
-            const tensoes = tensaoSnap.val() || {};
-            const correntes = correnteSnap.val() || {};
-            const timestamps = timestampSnap.val() || {};
-            
-            const agora = Date.now();
-            const limiteMs = limiteHoras * 3600000;
-            const dados = [];
-            
-            for (const id in tensoes) {
-                if (timestamps[id]) {
-                    const dataItem = parseDataSegura(timestamps[id]);
-                    const timeMs = dataItem.getTime();
-                    if ((agora - timeMs) <= limiteMs) {
-                        dados.push({
-                            id: id,
-                            timestamp: dataItem,
-                            tensao: parseFloat(tensoes[id] || 0),
-                            corrente: parseFloat(correntes[id] || 0)
-                        });
-                    }
-                }
-            }
-            
-            dados.sort((a, b) => a.timestamp - b.timestamp);
-            dadosHistoricos = dados;
-            
-            atualizarTabela(dados);
-            atualizarEstatisticas(dados);
-            atualizarGrafico(dados);
-            
-        } catch (error) {
-            console.error("Erro:", error);
-            document.getElementById('tbody').innerHTML = '<tr><td colspan="3" style="color:red;">Erro ao carregar dados</td></tr>';
-        }
-    }
-    
-    function atualizarTabela(dados) {
-        const tbody = document.getElementById('tbody');
-        tbody.innerHTML = '';
-        const ultimos = dados.slice(-100);
-        for (const item of ultimos) {
-            const row = tbody.insertRow();
-            row.insertCell(0).innerText = item.timestamp.toLocaleString();
-            row.insertCell(1).innerText = item.tensao.toFixed(1);
-            row.insertCell(2).innerText = item.corrente.toFixed(2);
-        }
-        document.getElementById('totalRegistros').innerText = dados.length;
-    }
-    
-    function atualizarEstatisticas(dados) {
-        if (dados.length === 0) {
-            document.getElementById('mediaTensao').innerText = '---';
-            document.getElementById('maxTensao').innerText = '---';
-            document.getElementById('minTensao').innerText = '---';
-            return;
-        }
-        
-        let soma = 0, min = Infinity, max = -Infinity;
-        for (const item of dados) {
-            const v = item.tensao;
-            soma += v;
-            if (v < min) min = v;
-            if (v > max) max = v;
-        }
-        document.getElementById('mediaTensao').innerText = (soma / dados.length).toFixed(1);
-        document.getElementById('maxTensao').innerText = max.toFixed(1);
-        document.getElementById('minTensao').innerText = min.toFixed(1);
-    }
-    
-    function atualizarGrafico(dados) {
-        if (dados.length === 0) {
-            if (grafico) grafico.destroy();
-            return;
-        }
-        
-        const labels = dados.map(d => d.timestamp.toLocaleTimeString());
-        const tensoes = dados.map(d => d.tensao);
-        
-        // 🔥 CORREÇÃO AQUI: verifica se há dados antes de calcular min/max
-        let minY = 170;
-        let maxY = 260;
-        
-        if (tensoes.length > 0) {
-            const minT = Math.min(...tensoes);
-            const maxT = Math.max(...tensoes);
-            minY = Math.max(0, minT - 10);
-            maxY = maxT + 10;
-        }
-        
-        if (grafico) grafico.destroy();
-        const ctx = document.getElementById('grafico').getContext('2d');
-        
-        grafico = new Chart(ctx, {
-            type: 'line',
-            data: { 
-                labels: labels, 
-                datasets: [{ 
-                    label: 'Tensão (V)', 
-                    data: tensoes, 
-                    borderColor: '#00ff88', 
-                    backgroundColor: 'rgba(0,255,136,0.1)', 
-                    fill: true, 
-                    tension: 0.3,
-                    pointRadius: 2
-                }] 
-            },
-            options: { 
-                responsive: true, 
-                maintainAspectRatio: true,
-                scales: { 
-                    y: { 
-                        min: minY,
-                        max: maxY,
-                        title: { display: true, text: 'Tensão (V)' } 
-                    } 
-                }
+        // Dados atuais
+        db.ref('/atual').on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                document.getElementById('tensao').innerText = data.tensao?.toFixed(1) || '---';
+                document.getElementById('corrente').innerText = data.corrente?.toFixed(2) || '---';
+                document.getElementById('potencia').innerText = data.potencia?.toFixed(0) || '---';
+                document.getElementById('estado').innerText = data.estado || 'DESLIGADO';
             }
         });
-    }
-    
-    function exportarCSV() {
-        if (dadosHistoricos.length === 0) return;
-        let csv = "Data/Hora,Tensão (V),Corrente (A)\n";
-        for (const item of dadosHistoricos) {
-            csv += `"${item.timestamp.toLocaleString()}",${item.tensao.toFixed(1)},${item.corrente.toFixed(2)}\n`;
+        
+        // Busca histórico
+        async function carregarHistorico() {
+            const tensaoSnap = await db.ref('/historico/tensao').once('value');
+            const timestampSnap = await db.ref('/historico/timestamp').once('value');
+            
+            const tensoes = tensaoSnap.val() || {};
+            const timestamps = timestampSnap.val() || {};
+            
+            const dados = [];
+            for (const id in tensoes) {
+                if (timestamps[id]) {
+                    dados.push({
+                        tensao: tensoes[id],
+                        timestamp: timestamps[id]
+                    });
+                }
+            }
+            
+            dados.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+            
+            // Estatísticas
+            if (dados.length > 0) {
+                let soma = 0, max = -999, min = 999;
+                for (const item of dados) {
+                    soma += item.tensao;
+                    if (item.tensao > max) max = item.tensao;
+                    if (item.tensao < min) min = item.tensao;
+                }
+                document.getElementById('media').innerText = (soma/dados.length).toFixed(1);
+                document.getElementById('maxima').innerText = max.toFixed(1);
+                document.getElementById('minima').innerText = min.toFixed(1);
+                document.getElementById('total').innerText = dados.length;
+            }
+            
+            // Tabela (últimos 20)
+            const tbody = document.querySelector('#tabela tbody');
+            tbody.innerHTML = '';
+            for (let i = 0; i < Math.min(20, dados.length); i++) {
+                const row = tbody.insertRow();
+                row.insertCell(0).innerText = dados[i].timestamp;
+                row.insertCell(1).innerText = dados[i].tensao.toFixed(1);
+            }
         }
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = `smart_protector_${new Date().toISOString().slice(0,19)}.csv`;
-        link.click();
-    }
-    
-    document.getElementById('periodo').addEventListener('change', function() {
-        carregarHistorico(parseInt(this.value));
-    });
-    document.getElementById('atualizar').addEventListener('click', () => {
-        carregarHistorico(parseInt(document.getElementById('periodo').value));
-    });
-    document.getElementById('exportarCSV').addEventListener('click', exportarCSV);
-    
-    carregarHistorico(24);
-</script>
+        
+        carregarHistorico();
+    </script>
+</body>
+</html>
