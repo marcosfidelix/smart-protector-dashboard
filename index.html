@@ -151,7 +151,7 @@
         <table id="tabela">
             <thead><tr><th>Data/Hora</th><th>Tensão (V)</th><th>Corrente (A)</th></tr></thead>
             <tbody id="tbody"></tbody>
-        </table>
+         built
     </div>
     
     <div class="exportar">
@@ -161,7 +161,6 @@
 </div>
 
 <script>
-    // Configuração Firebase
     const firebaseConfig = {
         apiKey: "AIzaSyCrTIZNk9aZxVHhYyOvBo3jdLX3GQ16jsk",
         databaseURL: "https://smart-protector-77ffd-default-rtdb.firebaseio.com"
@@ -187,12 +186,10 @@
         }
     });
     
-    // Carrega histórico (adaptado para seu formato)
     async function carregarHistorico(limiteHoras) {
-        document.getElementById('tbody').innerHTML = '<tr><td colspan="4" class="loading">Carregando dados...</td></tr>';
+        document.getElementById('tbody').innerHTML = '<tr><td colspan="3" class="loading">Carregando...</td></tr>';
         
         try {
-            // Busca os três ramos separados
             const [tensaoSnap, correnteSnap, timestampSnap] = await Promise.all([
                 db.ref('/historico/tensao').orderByKey().once('value'),
                 db.ref('/historico/corrente').orderByKey().once('value'),
@@ -207,7 +204,6 @@
             const limiteMs = limiteHoras * 3600000;
             const dados = [];
             
-            // Junta os dados pelo mesmo ID
             for (const id in tensoes) {
                 if (timestamps[id]) {
                     const dataItem = new Date(timestamps[id]);
@@ -233,8 +229,8 @@
             atualizarGrafico(dados);
             
         } catch (error) {
-            console.error("Erro ao carregar dados:", error);
-            document.getElementById('tbody').innerHTML = '<tr><td colspan="4">Erro ao carregar dados</td></tr>';
+            console.error("Erro:", error);
+            document.getElementById('tbody').innerHTML = '<tr><td colspan="3">Erro ao carregar</td></tr>';
         }
     }
     
@@ -246,7 +242,7 @@
             const row = tbody.insertRow();
             row.insertCell(0).innerText = item.timestamp.toLocaleString();
             row.insertCell(1).innerText = item.tensao?.toFixed(1) || '---';
-            row.insertCell(2).innerText = item.corrente?.toFixed(2) || '---';
+            row.insertCell(2).innerText = item.corrente?.toFixed(2) || '0.00';
         }
         document.getElementById('totalRegistros').innerText = dados.length;
     }
@@ -259,17 +255,23 @@
             return;
         }
         
-        let soma = 0, min = Infinity, max = -Infinity;
+        let soma = 0;
+        let min = 999;
+        let max = -999;
+        let count = 0;
+        
         for (const item of dados) {
-            if (item.tensao) {
+            if (item.tensao !== undefined && item.tensao !== null) {
                 soma += item.tensao;
                 if (item.tensao < min) min = item.tensao;
                 if (item.tensao > max) max = item.tensao;
+                count++;
             }
         }
-        document.getElementById('mediaTensao').innerText = (soma/dados.length).toFixed(1);
-        document.getElementById('maxTensao').innerText = max.toFixed(1);
-        document.getElementById('minTensao').innerText = min.toFixed(1);
+        
+        document.getElementById('mediaTensao').innerText = count > 0 ? (soma/count).toFixed(1) : '---';
+        document.getElementById('maxTensao').innerText = max > -999 ? max.toFixed(1) : '---';
+        document.getElementById('minTensao').innerText = min < 999 ? min.toFixed(1) : '---';
     }
     
     function atualizarGrafico(dados) {
@@ -293,13 +295,14 @@
                     borderColor: '#00ff88', 
                     backgroundColor: 'rgba(0,255,136,0.1)', 
                     fill: true, 
-                    tension: 0.3 
+                    tension: 0.3,
+                    pointRadius: 3
                 }] 
             },
             options: { 
                 responsive: true, 
                 maintainAspectRatio: true, 
-                scales: { y: { min: 170, max: 260 } } 
+                scales: { y: { min: 170, max: 260, title: { display: true, text: 'Tensão (V)' } } }
             }
         });
     }
@@ -317,7 +320,6 @@
         link.click();
     }
     
-    // Eventos
     document.getElementById('periodo').addEventListener('change', function() {
         carregarHistorico(parseInt(this.value));
     });
@@ -327,7 +329,6 @@
     });
     document.getElementById('exportarCSV').addEventListener('click', exportarCSV);
     
-    // Carrega últimas 24h ao iniciar
     carregarHistorico(24);
 </script>
 </body>
