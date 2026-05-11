@@ -19,7 +19,6 @@
         h1 { text-align: center; margin-bottom: 20px; color: #00ff88; }
         h3 { margin: 20px 0 10px 0; color: #aaa; }
         
-        /* Cards em tempo real */
         .cards {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -31,15 +30,12 @@
             border-radius: 15px;
             padding: 20px;
             text-align: center;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
         .card h4 { font-size: 14px; color: #aaa; margin-bottom: 10px; }
         .card .valor { font-size: 42px; font-weight: bold; }
-        .card .unidade { font-size: 14px; color: #aaa; }
         .status-ligado { color: #00ff88; }
         .status-desligado { color: #ff4444; }
         
-        /* Filtros */
         .filtros {
             background: #16213e;
             border-radius: 15px;
@@ -50,8 +46,7 @@
             flex-wrap: wrap;
             align-items: center;
         }
-        .filtros label { color: #aaa; }
-        .filtros select, .filtros input, .filtros button {
+        .filtros select, .filtros button {
             background: #0f0f1a;
             color: white;
             border: 1px solid #00ff88;
@@ -61,7 +56,6 @@
         }
         .filtros button:hover { background: #00ff88; color: #0f0f1a; }
         
-        /* Gráfico */
         .grafico-container {
             background: #16213e;
             border-radius: 15px;
@@ -70,7 +64,6 @@
         }
         canvas { max-height: 400px; width: 100%; }
         
-        /* Estatísticas */
         .stats {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -86,7 +79,6 @@
         .stat-card .label { font-size: 12px; color: #aaa; }
         .stat-card .value { font-size: 24px; font-weight: bold; color: #00ff88; }
         
-        /* Tabela */
         .tabela-container {
             background: #16213e;
             border-radius: 15px;
@@ -100,10 +92,7 @@
         th { background: #0f0f1a; color: #00ff88; position: sticky; top: 0; }
         tr:hover { background: #1a2744; }
         
-        .exportar {
-            margin-top: 20px;
-            text-align: right;
-        }
+        .exportar { margin-top: 20px; text-align: right; }
         .btn-export {
             background: #00ff88;
             color: #0f0f1a;
@@ -114,6 +103,7 @@
             font-weight: bold;
         }
         .atualizacao { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
+        .loading { text-align: center; padding: 40px; color: #aaa; }
     </style>
 </head>
 <body>
@@ -132,14 +122,12 @@
     <div class="filtros">
         <label>Período:</label>
         <select id="periodo">
-            <option value="24">Últimas 24 horas</option>
+            <option value="1">Última hora</option>
+            <option value="6">Últimas 6 horas</option>
+            <option value="24" selected>Últimas 24 horas</option>
             <option value="168">Últimos 7 dias</option>
             <option value="720">Últimos 30 dias</option>
-            <option value="0">Personalizado</option>
         </select>
-        <input type="date" id="dataInicio" style="display:none">
-        <input type="date" id="dataFim" style="display:none">
-        <button id="btnPersonalizado" style="display:none">Aplicar</button>
         <button id="atualizar">🔄 Atualizar</button>
     </div>
     
@@ -150,7 +138,7 @@
     
     <!-- Estatísticas -->
     <h3>📊 ESTATÍSTICAS DO PERÍODO</h3>
-    <div class="stats" id="stats">
+    <div class="stats">
         <div class="stat-card"><div class="label">Média Tensão</div><div class="value" id="mediaTensao">---</div></div>
         <div class="stat-card"><div class="label">Máxima Tensão</div><div class="value" id="maxTensao">---</div></div>
         <div class="stat-card"><div class="label">Mínima Tensão</div><div class="value" id="minTensao">---</div></div>
@@ -161,12 +149,11 @@
     <h3>📋 HISTÓRICO DE DADOS</h3>
     <div class="tabela-container">
         <table id="tabela">
-            <thead><tr><th>Data/Hora</th><th>Tensão (V)</th><th>Corrente (A)</th><th>Potência (W)</th><th>Estado</th></tr></thead>
+            <thead><tr><th>Data/Hora</th><th>Tensão (V)</th><th>Corrente (A)</th></tr></thead>
             <tbody id="tbody"></tbody>
         </table>
     </div>
     
-    <!-- Exportar -->
     <div class="exportar">
         <button class="btn-export" id="exportarCSV">📎 Exportar CSV</button>
     </div>
@@ -200,63 +187,78 @@
         }
     });
     
-    // Carregar histórico
-    async function carregarHistorico(limiteHoras, dataInicioPersonalizado = null, dataFimPersonalizado = null) {
-        document.getElementById('tbody').innerHTML = '<tr><td colspan="5">Carregando dados...</td></tr>';
+    // Carrega histórico (adaptado para seu formato)
+    async function carregarHistorico(limiteHoras) {
+        document.getElementById('tbody').innerHTML = '<tr><td colspan="4" class="loading">Carregando dados...</td></tr>';
         
-        const snapshot = await db.ref('/historico').once('value');
-        const dados = [];
-        const agora = Date.now();
-        const limiteMs = limiteHoras * 3600000;
-        
-        snapshot.forEach((child) => {
-            const item = child.val();
-            if (item.timestamp) {
-                const dataItem = new Date(item.timestamp);
-                const timeMs = dataItem.getTime();
-                let incluir = false;
-                
-                if (dataInicioPersonalizado && dataFimPersonalizado) {
-                    incluir = timeMs >= dataInicioPersonalizado && timeMs <= dataFimPersonalizado;
-                } else {
-                    incluir = (agora - timeMs) <= limiteMs;
-                }
-                
-                if (incluir) {
-                    dados.push({
-                        timestamp: dataItem,
-                        tensao: item.tensao,
-                        corrente: item.corrente,
-                        potencia: item.potencia,
-                        estado: item.estado || 'DESLIGADO'
-                    });
+        try {
+            // Busca os três ramos separados
+            const [tensaoSnap, correnteSnap, timestampSnap] = await Promise.all([
+                db.ref('/historico/tensao').orderByKey().once('value'),
+                db.ref('/historico/corrente').orderByKey().once('value'),
+                db.ref('/historico/timestamp').orderByKey().once('value')
+            ]);
+            
+            const tensoes = tensaoSnap.val() || {};
+            const correntes = correnteSnap.val() || {};
+            const timestamps = timestampSnap.val() || {};
+            
+            const agora = Date.now();
+            const limiteMs = limiteHoras * 3600000;
+            const dados = [];
+            
+            // Junta os dados pelo mesmo ID
+            for (const id in tensoes) {
+                if (timestamps[id]) {
+                    const dataItem = new Date(timestamps[id]);
+                    if (!isNaN(dataItem.getTime())) {
+                        const timeMs = dataItem.getTime();
+                        if ((agora - timeMs) <= limiteMs) {
+                            dados.push({
+                                id: id,
+                                timestamp: dataItem,
+                                tensao: tensoes[id],
+                                corrente: correntes[id] || 0
+                            });
+                        }
+                    }
                 }
             }
-        });
-        
-        dados.sort((a,b) => a.timestamp - b.timestamp);
-        dadosHistoricos = dados;
-        atualizarTabela(dados);
-        atualizarEstatisticas(dados);
-        atualizarGrafico(dados);
+            
+            dados.sort((a,b) => a.timestamp - b.timestamp);
+            dadosHistoricos = dados;
+            
+            atualizarTabela(dados);
+            atualizarEstatisticas(dados);
+            atualizarGrafico(dados);
+            
+        } catch (error) {
+            console.error("Erro ao carregar dados:", error);
+            document.getElementById('tbody').innerHTML = '<tr><td colspan="4">Erro ao carregar dados</td></tr>';
+        }
     }
     
     function atualizarTabela(dados) {
         const tbody = document.getElementById('tbody');
         tbody.innerHTML = '';
-        for (const item of dados.slice(-100)) { // Últimos 100 registros
+        const ultimos = dados.slice(-50);
+        for (const item of ultimos) {
             const row = tbody.insertRow();
             row.insertCell(0).innerText = item.timestamp.toLocaleString();
             row.insertCell(1).innerText = item.tensao?.toFixed(1) || '---';
             row.insertCell(2).innerText = item.corrente?.toFixed(2) || '---';
-            row.insertCell(3).innerText = item.potencia?.toFixed(0) || '---';
-            row.insertCell(4).innerText = item.estado || 'DESLIGADO';
         }
         document.getElementById('totalRegistros').innerText = dados.length;
     }
     
     function atualizarEstatisticas(dados) {
-        if (dados.length === 0) return;
+        if (dados.length === 0) {
+            document.getElementById('mediaTensao').innerText = '---';
+            document.getElementById('maxTensao').innerText = '---';
+            document.getElementById('minTensao').innerText = '---';
+            return;
+        }
+        
         let soma = 0, min = Infinity, max = -Infinity;
         for (const item of dados) {
             if (item.tensao) {
@@ -271,6 +273,11 @@
     }
     
     function atualizarGrafico(dados) {
+        if (dados.length === 0) {
+            if (grafico) grafico.destroy();
+            return;
+        }
+        
         const labels = dados.map(d => d.timestamp.toLocaleTimeString());
         const tensoes = dados.map(d => d.tensao);
         
@@ -278,16 +285,30 @@
         const ctx = document.getElementById('grafico').getContext('2d');
         grafico = new Chart(ctx, {
             type: 'line',
-            data: { labels, datasets: [{ label: 'Tensão (V)', data: tensoes, borderColor: '#00ff88', backgroundColor: 'rgba(0,255,136,0.1)', fill: true, tension: 0.3 }] },
-            options: { responsive: true, maintainAspectRatio: true, scales: { y: { min: 170, max: 260 } } }
+            data: { 
+                labels: labels, 
+                datasets: [{ 
+                    label: 'Tensão (V)', 
+                    data: tensoes, 
+                    borderColor: '#00ff88', 
+                    backgroundColor: 'rgba(0,255,136,0.1)', 
+                    fill: true, 
+                    tension: 0.3 
+                }] 
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: true, 
+                scales: { y: { min: 170, max: 260 } } 
+            }
         });
     }
     
     function exportarCSV() {
         if (dadosHistoricos.length === 0) return;
-        let csv = "Data/Hora,Tensão (V),Corrente (A),Potência (W),Estado\n";
+        let csv = "Data/Hora,Tensão (V),Corrente (A)\n";
         for (const item of dadosHistoricos) {
-            csv += `"${item.timestamp.toLocaleString()}",${item.tensao?.toFixed(1) || ''},${item.corrente?.toFixed(2) || ''},${item.potencia?.toFixed(0) || ''},${item.estado || ''}\n`;
+            csv += `"${item.timestamp.toLocaleString()}",${item.tensao?.toFixed(1) || ''},${item.corrente?.toFixed(2) || ''}\n`;
         }
         const blob = new Blob([csv], { type: 'text/csv' });
         const link = document.createElement('a');
@@ -298,30 +319,12 @@
     
     // Eventos
     document.getElementById('periodo').addEventListener('change', function() {
-        const personalizado = this.value === '0';
-        document.getElementById('dataInicio').style.display = personalizado ? 'inline-block' : 'none';
-        document.getElementById('dataFim').style.display = personalizado ? 'inline-block' : 'none';
-        document.getElementById('btnPersonalizado').style.display = personalizado ? 'inline-block' : 'none';
-        if (!personalizado) carregarHistorico(parseInt(this.value));
+        carregarHistorico(parseInt(this.value));
     });
-    
-    document.getElementById('btnPersonalizado').addEventListener('click', () => {
-        const inicio = new Date(document.getElementById('dataInicio').value);
-        const fim = new Date(document.getElementById('dataFim').value);
-        if (inicio && fim) carregarHistorico(0, inicio.getTime(), fim.getTime());
-    });
-    
     document.getElementById('atualizar').addEventListener('click', () => {
         const periodo = document.getElementById('periodo').value;
-        if (periodo === '0') {
-            const inicio = new Date(document.getElementById('dataInicio').value);
-            const fim = new Date(document.getElementById('dataFim').value);
-            if (inicio && fim) carregarHistorico(0, inicio.getTime(), fim.getTime());
-        } else {
-            carregarHistorico(parseInt(periodo));
-        }
+        carregarHistorico(parseInt(periodo));
     });
-    
     document.getElementById('exportarCSV').addEventListener('click', exportarCSV);
     
     // Carrega últimas 24h ao iniciar
