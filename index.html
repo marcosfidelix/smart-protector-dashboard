@@ -5,98 +5,159 @@
     <meta charset="UTF-8">
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <style>
+        body { font-family: Arial; background: #1a1a2e; color: white; padding: 20px; }
+        .card { background: #16213e; border-radius: 10px; padding: 20px; margin: 10px; display: inline-block; min-width: 150px; }
+        .valor { font-size: 36px; font-weight: bold; color: #00ff88; }
+        .status-ligado { color: #00ff88; }
+        .status-desligado { color: #ff4444; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 10px; text-align: center; border-bottom: 1px solid #333; }
+        th { background: #0f0f1a; color: #00ff88; }
+    </style>
 </head>
 <body>
     <h1>🔌 SMART PROTECTOR</h1>
     
-    <div>
-        <h2>Dados em Tempo Real</h2>
-        <p>⚡ Tensão: <span id="tensao">---</span> V</p>
-        <p>🔌 Corrente: <span id="corrente">---</span> A</p>
-        <p>⚡ Potência: <span id="potencia">---</span> W</p>
-        <p>🔒 Estado: <span id="estado">---</span></p>
-    </div>
+    <div class="card"><div>⚡ Tensão</div><div class="valor" id="tensao">---</div><div>V</div></div>
+    <div class="card"><div>🔌 Corrente</div><div class="valor" id="corrente">---</div><div>A</div></div>
+    <div class="card"><div>⚡ Potência</div><div class="valor" id="potencia">---</div><div>W</div></div>
+    <div class="card"><div>🔒 Estado</div><div class="valor" id="estado">---</div></div>
     
-    <div>
-        <h2>📊 Estatísticas (últimos registros)</h2>
-        <p>📈 Média Tensão: <span id="media">---</span> V</p>
-        <p>📈 Máxima: <span id="maxima">---</span> V</p>
-        <p>📉 Mínima: <span id="minima">---</span> V</p>
-        <p>📝 Total registros: <span id="total">---</span></p>
-    </div>
+    <h2>📊 ESTATÍSTICAS (últimos registros)</h2>
+    <div id="stats">Calculando...</div>
     
-    <div>
-        <h2>📋 Últimos 20 registros</h2>
-        <table border="1" cellpadding="5" id="tabela">
-            <thead><tr><th>Data/Hora</th><th>Tensão (V)</th></tr></thead>
-            <tbody></tbody>
-        </table>
-    </div>
+    <h2>📋 ÚLTIMOS REGISTROS</h2>
+    <table id="tabela">
+        <thead><tr><th>Data/Hora</th><th>Tensão (V)</th><th>Corrente (A)</th></tr></thead>
+        <tbody id="tbody"></tbody>
+    </table>
 
     <script>
         const firebaseConfig = {
             apiKey: "AIzaSyCrTIZNk9aZxVHhYyOvBo3jdLX3GQ16jsk",
             databaseURL: "https://smart-protector-77ffd-default-rtdb.firebaseio.com"
         };
-        firebase.initializeApp(firebaseConfig);
+        
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
         const db = firebase.database();
         
-        // Dados atuais
+        // ================= DADOS EM TEMPO REAL =================
         db.ref('/atual').on('value', (snapshot) => {
             const data = snapshot.val();
             if (data) {
-                document.getElementById('tensao').innerText = data.tensao?.toFixed(1) || '---';
-                document.getElementById('corrente').innerText = data.corrente?.toFixed(2) || '---';
-                document.getElementById('potencia').innerText = data.potencia?.toFixed(0) || '---';
-                document.getElementById('estado').innerText = data.estado || 'DESLIGADO';
+                document.getElementById('tensao').innerText = (data.tensao || 0).toFixed(1);
+                document.getElementById('corrente').innerText = (data.corrente || 0).toFixed(2);
+                document.getElementById('potencia').innerText = (data.potencia || 0).toFixed(0);
+                const estado = data.estado || 'DESLIGADO';
+                const estadoEl = document.getElementById('estado');
+                estadoEl.innerText = estado;
+                estadoEl.className = 'valor ' + (estado === 'LIGADO' ? 'status-ligado' : 'status-desligado');
             }
         });
         
-        // Busca histórico
+        // ================= FUNÇÃO PARA LER TIMESTAMP =================
+        function parseTimestamp(timestampStr) {
+            if (!timestampStr) return null;
+            // Formato do ESP32: "2026-05-11 15:51:19"
+            return new Date(timestampStr.replace(' ', 'T'));
+        }
+        
+        // ================= CARREGAR HISTÓRICO =================
         async function carregarHistorico() {
-            const tensaoSnap = await db.ref('/historico/tensao').once('value');
-            const timestampSnap = await db.ref('/historico/timestamp').once('value');
-            
-            const tensoes = tensaoSnap.val() || {};
-            const timestamps = timestampSnap.val() || {};
-            
-            const dados = [];
-            for (const id in tensoes) {
-                if (timestamps[id]) {
-                    dados.push({
-                        tensao: tensoes[id],
-                        timestamp: timestamps[id]
-                    });
+            try {
+                console.log("Carregando dados...");
+                
+                // Busca os dados
+                const [tensaoSnap, correnteSnap, timestampSnap] = await Promise.all([
+                    db.ref('/historico/tensao').once('value'),
+                    db.ref('/historico/corrente').once('value'),
+                    db.ref('/historico/timestamp').once('value')
+                ]);
+                
+                const tensoes = tensaoSnap.val() || {};
+                const correntes = correnteSnap.val() || {};
+                const timestamps = timestampSnap.val() || {};
+                
+                console.log("Tensões encontradas:", Object.keys(tensoes).length);
+                
+                // Monta array de dados
+                const dados = [];
+                for (const id in tensoes) {
+                    if (timestamps[id]) {
+                        const dataObj = parseTimestamp(timestamps[id]);
+                        if (dataObj) {
+                            dados.push({
+                                timestamp: dataObj,
+                                timestampStr: timestamps[id],
+                                tensao: tensoes[id],
+                                corrente: correntes[id] || 0
+                            });
+                        }
+                    }
                 }
-            }
-            
-            dados.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
-            
-            // Estatísticas
-            if (dados.length > 0) {
-                let soma = 0, max = -999, min = 999;
-                for (const item of dados) {
-                    soma += item.tensao;
-                    if (item.tensao > max) max = item.tensao;
-                    if (item.tensao < min) min = item.tensao;
+                
+                // Ordena do mais recente para o mais antigo
+                dados.sort((a, b) => b.timestamp - a.timestamp);
+                
+                console.log("Total de registros:", dados.length);
+                
+                // ================= ATUALIZA ESTATÍSTICAS =================
+                if (dados.length > 0) {
+                    let soma = 0;
+                    let maxTensao = -999;
+                    let minTensao = 999;
+                    
+                    for (const item of dados) {
+                        soma += item.tensao;
+                        if (item.tensao > maxTensao) maxTensao = item.tensao;
+                        if (item.tensao < minTensao) minTensao = item.tensao;
+                    }
+                    
+                    const media = (soma / dados.length).toFixed(1);
+                    document.getElementById('stats').innerHTML = `
+                        <div class="card" style="display:inline-block">
+                            📈 Média: ${media} V<br>
+                            📈 Máxima: ${maxTensao.toFixed(1)} V<br>
+                            📉 Mínima: ${minTensao.toFixed(1)} V<br>
+                            📝 Total: ${dados.length} registros
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('stats').innerHTML = 'Aguardando dados...';
                 }
-                document.getElementById('media').innerText = (soma/dados.length).toFixed(1);
-                document.getElementById('maxima').innerText = max.toFixed(1);
-                document.getElementById('minima').innerText = min.toFixed(1);
-                document.getElementById('total').innerText = dados.length;
-            }
-            
-            // Tabela (últimos 20)
-            const tbody = document.querySelector('#tabela tbody');
-            tbody.innerHTML = '';
-            for (let i = 0; i < Math.min(20, dados.length); i++) {
-                const row = tbody.insertRow();
-                row.insertCell(0).innerText = dados[i].timestamp;
-                row.insertCell(1).innerText = dados[i].tensao.toFixed(1);
+                
+                // ================= ATUALIZA TABELA =================
+                const tbody = document.getElementById('tbody');
+                tbody.innerHTML = '';
+                
+                // Mostra últimos 50 registros
+                for (let i = 0; i < Math.min(50, dados.length); i++) {
+                    const item = dados[i];
+                    const row = tbody.insertRow();
+                    row.insertCell(0).innerText = item.timestampStr;
+                    row.insertCell(1).innerText = item.tensao.toFixed(1);
+                    row.insertCell(2).innerText = item.corrente.toFixed(2);
+                }
+                
+                if (dados.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="3">Nenhum dado encontrado. Aguardando ESP32 enviar dados...</td></tr>';
+                }
+                
+            } catch (error) {
+                console.error("Erro detalhado:", error);
+                document.getElementById('stats').innerHTML = 'Erro ao carregar: ' + error.message;
+                document.getElementById('tbody').innerHTML = '<tr><td colspan="3">Erro ao carregar dados</td></tr>';
             }
         }
         
+        // Carrega ao iniciar
         carregarHistorico();
+        
+        // Recarrega a cada 30 segundos
+        setInterval(carregarHistorico, 30000);
     </script>
 </body>
 </html>
