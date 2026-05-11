@@ -16,6 +16,11 @@
         th, td { padding: 10px; text-align: center; border-bottom: 1px solid #333; }
         th { background: #0f0f1a; color: #00ff88; }
         canvas { max-height: 400px; margin-top: 20px; }
+        .filtros { margin: 20px 0; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        select, button { background: #0f0f1a; color: white; border: 1px solid #00ff88; padding: 8px 15px; border-radius: 8px; cursor: pointer; }
+        button:hover { background: #00ff88; color: #0f0f1a; }
+        .exportar { margin-top: 20px; text-align: right; }
+        .btn-export { background: #00ff88; color: #0f0f1a; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -26,13 +31,14 @@
     <div class="card"><div>⚡ Potência</div><div class="valor" id="potencia">---</div><div>W</div></div>
     <div class="card"><div>🔒 Estado</div><div class="valor" id="estado">---</div></div>
     
-    <div style="margin: 20px 0;">
+    <div class="filtros">
         <label>Período: </label>
         <select id="periodo">
             <option value="1">Última hora</option>
             <option value="6">Últimas 6 horas</option>
             <option value="24" selected>Últimas 24 horas</option>
             <option value="168">Últimos 7 dias</option>
+            <option value="720">Últimos 30 dias</option>
         </select>
         <button id="atualizar">🔄 Atualizar</button>
     </div>
@@ -43,10 +49,15 @@
     <div id="stats"></div>
     
     <h2>📋 ÚLTIMOS REGISTROS</h2>
-    <table id="tabela">
-        <thead><tr><th>Data/Hora</th><th>Tensão (V)</th><th>Corrente (A)</th></tr></thead>
-        <tbody id="tbody"></tbody>
-    追逐
+    <div class="tabela-container" style="overflow-x: auto; max-height: 400px; overflow-y: auto;">
+        <table id="tabela">
+            <thead><tr><th>Data/Hora</th><th>Tensão (V)</th><th>Corrente (A)</th><th>Potência (W)</th><th>Estado</th></tr></thead>
+            <tbody id="tbody"></tbody>
+    </div>
+    
+    <div class="exportar">
+        <button class="btn-export" id="exportarCSV">📎 Exportar CSV</button>
+    </div>
 
     <script>
         const firebaseConfig = {
@@ -75,6 +86,8 @@
         });
         
         async function carregarHistorico(limiteHoras) {
+            document.getElementById('tbody').innerHTML = '<tr><td colspan="5">Carregando...</td></tr>';
+            
             const snapshot = await db.ref('/historico').once('value');
             const dados = [];
             const agora = Date.now();
@@ -83,12 +96,17 @@
             snapshot.forEach((child) => {
                 const item = child.val();
                 if (item.timestamp) {
-                    const dataItem = new Date(item.timestamp.replace(' ', 'T'));
+                    // Remove caracteres especiais do timestamp
+                    let timestampStr = item.timestamp;
+                    // Remove caracteres não desejados (mantém apenas números, espaço, hífen, dois pontos)
+                    timestampStr = timestampStr.replace(/[^\d\s\-:]/g, '');
+                    
+                    const dataItem = new Date(timestampStr.replace(' ', 'T'));
                     const timeMs = dataItem.getTime();
-                    if ((agora - timeMs) <= limiteMs) {
+                    if (!isNaN(timeMs) && (agora - timeMs) <= limiteMs) {
                         dados.push({
                             timestamp: dataItem,
-                            timestampStr: item.timestamp,
+                            timestampStr: timestampStr,
                             tensao: item.tensao || 0,
                             corrente: item.corrente || 0,
                             potencia: item.potencia || 0,
@@ -109,18 +127,23 @@
         function atualizarTabela(dados) {
             const tbody = document.getElementById('tbody');
             tbody.innerHTML = '';
-            const ultimos = dados.slice(-50);
-            for (const item of ultimos.reverse()) {
+            const ultimos = dados.slice(-50).reverse();
+            for (const item of ultimos) {
                 const row = tbody.insertRow();
                 row.insertCell(0).innerText = item.timestampStr;
                 row.insertCell(1).innerText = item.tensao.toFixed(1);
                 row.insertCell(2).innerText = item.corrente.toFixed(2);
+                row.insertCell(3).innerText = item.potencia.toFixed(0);
+                row.insertCell(4).innerText = item.estado;
+            }
+            if (dados.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5">Nenhum registro encontrado. Aguardando dados...<td></td>';
             }
         }
         
         function atualizarEstatisticas(dados) {
             if (dados.length === 0) {
-                document.getElementById('stats').innerHTML = 'Aguardando dados...';
+                document.getElementById('stats').innerHTML = '<div class="card">Aguardando dados...</div>';
                 return;
             }
             
@@ -142,7 +165,10 @@
         }
         
         function atualizarGrafico(dados) {
-            if (dados.length === 0) return;
+            if (dados.length === 0) {
+                if (grafico) grafico.destroy();
+                return;
+            }
             
             const labels = dados.map(d => d.timestamp.toLocaleTimeString());
             const tensoes = dados.map(d => d.tensao);
@@ -151,9 +177,48 @@
             const ctx = document.getElementById('grafico').getContext('2d');
             grafico = new Chart(ctx, {
                 type: 'line',
-                data: { labels, datasets: [{ label: 'Tensão (V)', data: tensoes, borderColor: '#00ff88', fill: true, backgroundColor: 'rgba(0,255,136,0.1)', tension: 0.3 }] },
-                options: { responsive: true, maintainAspectRatio: true, scales: { y: { min: 170, max: 260 } } }
+                data: { 
+                    labels: labels, 
+                    datasets: [{ 
+                        label: 'Tensão (V)', 
+                        data: tensoes, 
+                        borderColor: '#00ff88', 
+                        backgroundColor: 'rgba(0,255,136,0.1)', 
+                        fill: true, 
+                        tension: 0.3,
+                        pointRadius: 2
+                    }] 
+                },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: true,
+                    scales: { 
+                        y: { 
+                            min: Math.max(0, Math.min(...tensoes) - 5),
+                            max: Math.max(...tensoes) + 5,
+                            title: { display: true, text: 'Tensão (V)' }
+                        } 
+                    }
+                }
             });
+        }
+        
+        function exportarCSV() {
+            if (dadosHistoricos.length === 0) {
+                alert("Não há dados para exportar!");
+                return;
+            }
+            
+            let csv = "Data/Hora,Tensão (V),Corrente (A),Potência (W),Estado\n";
+            for (const item of dadosHistoricos) {
+                csv += `"${item.timestampStr}",${item.tensao.toFixed(1)},${item.corrente.toFixed(2)},${item.potencia.toFixed(0)},${item.estado}\n`;
+            }
+            
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `smart_protector_${new Date().toISOString().slice(0,19)}.csv`;
+            link.click();
         }
         
         document.getElementById('periodo').addEventListener('change', function() {
@@ -162,6 +227,7 @@
         document.getElementById('atualizar').addEventListener('click', () => {
             carregarHistorico(parseInt(document.getElementById('periodo').value));
         });
+        document.getElementById('exportarCSV').addEventListener('click', exportarCSV);
         
         carregarHistorico(24);
     </script>
