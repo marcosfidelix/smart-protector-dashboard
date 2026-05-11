@@ -29,6 +29,11 @@
         }
         .status-ligado { color: #00ff88; }
         .status-desligado { color: #ff4444; }
+        .atualizacao {
+            margin-top: 30px;
+            font-size: 12px;
+            color: gray;
+        }
     </style>
 </head>
 <body>
@@ -54,29 +59,49 @@
         <div>🔒 Estado</div>
         <div class="valor" id="estado">---</div>
     </div>
+    
+    <div class="atualizacao">
+        📅 Última atualização: <span id="atualizacao">---</span>
+    </div>
 
     <script>
+        // Configuração do Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyCrTIZNk9aZxVHhYyOvBo3jdLX3GQ16jsk",
             databaseURL: "https://smart-protector-77ffd-default-rtdb.firebaseio.com"
         };
 
+        // Inicializa o Firebase
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // Dados em tempo real
-        db.ref('/atual').on('value', (snapshot) => {
+        // Referência para o nó /atual
+        const atualRef = db.ref('/atual');
+
+        // Escuta mudanças em tempo real
+        atualRef.on('value', (snapshot) => {
             const data = snapshot.val();
+            console.log("Dados recebidos:", data); // Para debug no console
+            
             if (data) {
                 document.getElementById('tensao').innerText = data.tensao?.toFixed(1) || '---';
                 document.getElementById('corrente').innerText = data.corrente?.toFixed(2) || '---';
                 document.getElementById('potencia').innerText = data.potencia?.toFixed(0) || '---';
+                
                 const estado = data.estado || 'DESLIGADO';
                 const estadoEl = document.getElementById('estado');
                 estadoEl.innerText = estado;
                 estadoEl.className = 'valor ' + (estado === 'LIGADO' ? 'status-ligado' : 'status-desligado');
+                
+                document.getElementById('atualizacao').innerText = new Date().toLocaleString();
+            } else {
+                console.log("Nenhum dado encontrado em /atual");
             }
+        }, (error) => {
+            console.error("Erro ao ler dados:", error);
         });
+        
+        console.log("Monitorando dados em /atual...");
     </script>
 </body>
 </html>
