@@ -610,81 +610,144 @@
         }
     }
 
-    // ================= ATUALIZAR GRÁFICO =================
-    function atualizarGrafico(dados) {
-        if (dados.length === 0) {
-            if (grafico) grafico.destroy();
-            return;
-        }
-        
-        const dadosGrafico = dados.slice(-500);
-        const labels = dadosGrafico.map(d => {
-            const time = d.timestamp || d.dataHora || '';
-            const match = time.match(/(\d{2}):(\d{2}):(\d{2})/);
-            return match ? `${match[1]}:${match[2]}` : '--:--';
-        });
-        
-        const tensoes = dadosGrafico.map(d => d.tensao || 0);
-        
-        const minTensao = Math.min(...tensoes);
-        const maxTensao = Math.max(...tensoes);
-        const margem = 5;
-        
-        let yMin = Math.max(0, minTensao - margem);
-        let yMax = maxTensao + margem;
-        
-        if (yMax - yMin < 10) {
-            yMin = yMin - 5;
-            yMax = yMax + 5;
-        }
-        
+// ================= ATUALIZAR GRÁFICO (VERSÃO CORRIGIDA) =================
+function atualizarGrafico(dados) {
+    console.log("📊 Atualizando gráfico com", dados.length, "pontos");
+    
+    if (!dados || dados.length === 0) {
+        console.log("⚠️ Sem dados para o gráfico");
         if (grafico) grafico.destroy();
-        
-        grafico = new Chart(document.getElementById('grafico'), {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Tensão (V)',
-                    data: tensoes,
-                    borderColor: '#00ff88',
-                    backgroundColor: 'rgba(0,255,136,0.1)',
-                    fill: true,
-                    tension: 0.3,
-                    pointRadius: 2,
-                    pointBackgroundColor: '#00ff88'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                plugins: {
-                    legend: { labels: { color: '#fff' } },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return `Tensão: ${context.raw.toFixed(1)} V`;
-                            }
+        return;
+    }
+    
+    // Pega os últimos pontos (máximo 500 para performance)
+    const dadosGrafico = dados.slice(-500);
+    console.log("📈 Exibindo", dadosGrafico.length, "pontos no gráfico");
+    
+    // Extrai labels e valores
+    const labels = dadosGrafico.map(d => {
+        const time = d.timestamp || d.dataHora || '';
+        // Tenta extrair horário
+        if (typeof time === 'string') {
+            const match = time.match(/(\d{2}):(\d{2})/);
+            return match ? `${match[1]}:${match[2]}` : '--:--';
+        }
+        return '--:--';
+    });
+    
+    const tensoes = dadosGrafico.map(d => {
+        const v = d.tensao || 0;
+        return typeof v === 'number' ? v : 0;
+    });
+    
+    // 🔥 CALCULA LIMITES DINÂMICOS
+    const minTensao = Math.min(...tensoes);
+    const maxTensao = Math.max(...tensoes);
+    const margem = 8;  // Margem de 8V para dar folga
+    
+    let yMin = Math.max(0, minTensao - margem);
+    let yMax = maxTensao + margem;
+    
+    // Garante que o mínimo seja menor que o máximo
+    if (yMin >= yMax) {
+        yMin = yMin - 10;
+        yMax = yMax + 10;
+    }
+    
+    // 🔥 Se for escala fixa (opcional), descomente a linha abaixo:
+    // yMin = 0; yMax = 300;  // Modo fixo
+    
+    console.log(`🎯 Escala do gráfico: ${yMin.toFixed(0)}V - ${yMax.toFixed(0)}V`);
+    console.log(`📊 Tensões: min=${minTensao.toFixed(1)}V, max=${maxTensao.toFixed(1)}V`);
+    
+    // Destrói gráfico anterior se existir
+    if (grafico) {
+        grafico.destroy();
+        grafico = null;
+    }
+    
+    // Cria novo gráfico
+    const ctx = document.getElementById('grafico').getContext('2d');
+    
+    grafico = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Tensão (V)',
+                data: tensoes,
+                borderColor: '#00ff88',
+                backgroundColor: 'rgba(0,255,136,0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.2,  // Suavização
+                pointRadius: 2,
+                pointBackgroundColor: '#00ff88',
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: { 
+                    labels: { color: '#fff' } 
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    callbacks: {
+                        label: function(context) {
+                            return `⚡ Tensão: ${context.raw.toFixed(1)} V`;
                         }
                     }
-                },
-                scales: {
-                    y: {
-                        min: yMin,
-                        max: yMax,
-                        title: { display: true, text: 'Tensão (V)', color: '#aaa' },
-                        ticks: { color: '#aaa' },
-                        grid: { color: 'rgba(255,255,255,0.1)' }
-                    },
-                    x: {
-                        title: { display: true, text: 'Horário', color: '#aaa' },
-                        ticks: { color: '#aaa', maxRotation: 45, minRotation: 45 },
-                        grid: { color: 'rgba(255,255,255,0.1)' }
-                    }
                 }
+            },
+            scales: {
+                y: {
+                    min: yMin,
+                    max: yMax,
+                    title: { 
+                        display: true, 
+                        text: 'Tensão (Volts)', 
+                        color: '#aaa',
+                        font: { size: 12 }
+                    },
+                    ticks: { 
+                        color: '#aaa',
+                        stepSize: (yMax - yMin) / 5,  // 5 divisões automáticas
+                        callback: function(value) {
+                            return value.toFixed(0) + 'V';
+                        }
+                    },
+                    grid: { color: 'rgba(255,255,255,0.1)' }
+                },
+                x: {
+                    title: { 
+                        display: true, 
+                        text: 'Horário', 
+                        color: '#aaa' 
+                    },
+                    ticks: { 
+                        color: '#aaa', 
+                        maxRotation: 45, 
+                        minRotation: 45,
+                        maxTicksLimit: 10  // Limita número de labels
+                    },
+                    grid: { color: 'rgba(255,255,255,0.1)' }
+                }
+            },
+            interaction: {
+                mode: 'nearest',
+                axis: 'x',
+                intersect: false
             }
-        });
-    }
+        }
+    });
+    
+    console.log("✅ Gráfico atualizado com sucesso!");
+}
         // ================= EXPORTAR CSV =================
     function exportarCSV() {
         if (dadosFiltrados?.length === 0) {
