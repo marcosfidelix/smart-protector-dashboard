@@ -64,29 +64,139 @@
         .sinal-regular { color: #ffaa44; }
         .sinal-ruim { color: #ff6644; }
         .sinal-pessimo { color: #ff4444; }
-        .filtros { background: #16213e; border-radius: 15px; padding: 15px; margin-bottom: 20px; display: flex; gap: 15px; flex-wrap: wrap; align-items: center; }
-        .filtros label { color: #aaa; }
-        .filtros select, .filtros button { background: #0f0f1a; color: white; border: 1px solid #00ff88; padding: 8px 15px; border-radius: 8px; cursor: pointer; transition: all 0.3s; }
-        .filtros button:hover { background: #00ff88; color: #0f0f1a; }
+        
+        /* Botão de filtro expansível */
+        .btn-filtro {
+            background: #16213e;
+            border: 1px solid #00ff88;
+            color: #00ff88;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-filtro:hover {
+            background: #00ff88;
+            color: #0f0f1a;
+        }
+        .btn-filtro .seta {
+            transition: transform 0.3s;
+        }
+        .btn-filtro.aberto .seta {
+            transform: rotate(180deg);
+        }
+        
+        /* Painel de filtro (escondido por padrão) */
+        .painel-filtro {
+            background: #16213e;
+            border-radius: 15px;
+            padding: 0;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-out, padding 0.3s;
+            margin-bottom: 20px;
+        }
+        .painel-filtro.aberto {
+            max-height: 500px;
+            padding: 20px;
+        }
+        .filtros-row {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .filtros-row label {
+            color: #aaa;
+            font-weight: bold;
+        }
+        .periodo-predefinido {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .periodo-predefinido button {
+            background: #0f0f1a;
+            color: white;
+            border: 1px solid #00ff88;
+            padding: 6px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 12px;
+        }
+        .periodo-predefinido button:hover {
+            background: #00ff88;
+            color: #0f0f1a;
+        }
+        .periodo-customizado {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+            border-top: 1px solid #333;
+            padding-top: 15px;
+            margin-top: 5px;
+        }
+        .periodo-customizado input {
+            background: #0f0f1a;
+            color: white;
+            border: 1px solid #00ff88;
+            padding: 6px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .periodo-customizado button {
+            background: #00ff88;
+            color: #0f0f1a;
+            border: none;
+            padding: 6px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .periodo-customizado button:hover {
+            background: #00cc66;
+        }
+        .btn-limpar {
+            background: #ff4444 !important;
+            color: white !important;
+        }
+        .btn-limpar:hover {
+            background: #cc0000 !important;
+        }
+        
         .grafico-container { background: #16213e; border-radius: 15px; padding: 20px; margin-bottom: 20px; }
         canvas { max-height: 400px; width: 100%; }
+        
         .stats { display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 20px; }
         .stat-card { background: #16213e; border-radius: 10px; padding: 15px; text-align: center; min-width: 120px; }
         .stat-card .label { font-size: 12px; color: #aaa; }
         .stat-card .value { font-size: 24px; font-weight: bold; color: #00ff88; }
+        
         .tabela-container { background: #16213e; border-radius: 15px; padding: 20px; overflow-x: auto; max-height: 500px; overflow-y: auto; }
         table { width: 100%; border-collapse: collapse; }
         th, td { padding: 12px; text-align: center; border-bottom: 1px solid #333; }
         th { background: #0f0f1a; color: #00ff88; position: sticky; top: 0; }
         tr:hover { background: #1a2744; }
+        
         .exportar { margin-top: 20px; text-align: right; }
         .btn-export { background: #00ff88; color: #0f0f1a; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: all 0.3s; }
         .btn-export:hover { background: #00cc66; transform: scale(1.02); }
+        
         .watermark { position: fixed; bottom: 15px; right: 15px; opacity: 0.12; font-size: 11px; color: white; background: rgba(0,0,0,0.3); padding: 8px 12px; border-radius: 10px; pointer-events: none; z-index: 999; font-family: monospace; text-align: right; backdrop-filter: blur(2px); }
         .atualizacao { text-align: center; margin-top: 20px; font-size: 11px; color: #555; }
         .error-msg { color: #ff4444; text-align: center; margin-top: 10px; font-size: 12px; }
         .loading { display: inline-block; width: 20px; height: 20px; border: 2px solid #00ff88; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
+        
         @media (max-width: 768px) {
             .cards { grid-template-columns: repeat(3, 1fr); }
             .card .valor { font-size: 28px; }
@@ -102,7 +212,8 @@
 </div>
 
 <div class="container">
-    <h1>☁️ SMART PROTECTOR</h1>
+    <h1>☁️ SMART PROTECTOR - CLOUD DASHBOARD</h1>
+    
     <div class="cards">
         <div class="card"><h4>⚡ TENSÃO</h4><div class="valor" id="tensao">---</div><div class="unidade">Volts (V)</div></div>
         <div class="card"><h4>🌀 FREQUÊNCIA</h4><div class="valor" id="frequencia">---</div><div class="unidade">Hertz (Hz)</div></div>
@@ -111,21 +222,39 @@
         <div class="card"><h4>📐 FATOR P.</h4><div class="valor" id="fp">---</div><div class="unidade">FP</div></div>
         <div class="card"><h4>🔒 ESTADO</h4><div class="valor" id="estado">---</div><div class="unidade">Painel</div></div>
     </div>
-    <div class="filtros">
-        <label>📅 Período do Gráfico:</label>
-        <select id="periodo">
-            <option value="1">🕐 Última hora</option>
-            <option value="6">🕕 Últimas 6 horas</option>
-            <option value="24" selected>📆 Últimas 24 horas</option>
-            <option value="168">📅 Últimos 7 dias</option>
-            <option value="720">📊 Últimos 30 dias</option>
-        </select>
-        <button id="atualizar">🔄 Atualizar Gráfico</button>
-        <div id="loadingIndicator" style="display: none;"><span class="loading"></span> Carregando...</div>
+    
+    <!-- Botão para abrir/fechar filtro -->
+    <button class="btn-filtro" id="btnToggleFiltro">
+        <span>📅</span> Filtrar por Período
+        <span class="seta">▼</span>
+    </button>
+    
+    <!-- Painel de filtro (escondido inicialmente) -->
+    <div class="painel-filtro" id="painelFiltro">
+        <div class="filtros-row">
+            <label>⚡ Período Rápido:</label>
+            <div class="periodo-predefinido">
+                <button onclick="aplicarPeriodoPredefinido(1)">🕐 Última hora</button>
+                <button onclick="aplicarPeriodoPredefinido(6)">🕕 Últimas 6 horas</button>
+                <button onclick="aplicarPeriodoPredefinido(24)">📆 Últimas 24 horas</button>
+                <button onclick="aplicarPeriodoPredefinido(168)">📅 Últimos 7 dias</button>
+            </div>
+        </div>
+        
+        <div class="periodo-customizado">
+            <label>📅 Período Personalizado:</label>
+            <input type="datetime-local" id="dataInicio">
+            <span>até</span>
+            <input type="datetime-local" id="dataFim">
+            <button onclick="aplicarPeriodoPersonalizado()">🔍 Aplicar</button>
+            <button onclick="limparFiltroPersonalizado()" class="btn-limpar">🗑️ Limpar</button>
+        </div>
     </div>
+    
     <div class="grafico-container">
         <canvas id="grafico"></canvas>
     </div>
+    
     <h2>📊 ESTATÍSTICAS DO PERÍODO</h2>
     <div class="stats">
         <div class="stat-card"><div class="label">📈 Média Tensão</div><div class="value" id="mediaTensao">---</div></div>
@@ -136,6 +265,7 @@
         <div class="stat-card"><div class="label">📶 Sinal WiFi</div><div class="value" id="sinalWifi">---</div></div>
         <div class="stat-card"><div class="label">📝 Total Registros</div><div class="value" id="totalRegistros">---</div></div>
     </div>
+    
     <h2>📋 HISTÓRICO DE DADOS</h2>
     <div class="tabela-container">
         <table id="tabela">
@@ -157,10 +287,12 @@
             </tbody>
         </table>
     </div>
+    
     <div class="exportar"><button class="btn-export" id="exportarCSV">📎 Exportar Dados (CSV)</button></div>
     <div class="atualizacao">📡 Sincronizado via Firebase • Última atualização: <span id="ultimaAtualizacao">---</span></div>
     <div id="errorMsg" class="error-msg"></div>
 </div>
+
 <div class="watermark">🛡️ TCC - SMART PROTECTOR<br>Desenvolvido por Antônio Marcos F. S.<br>Engenharia Elétrica</div>
 
 <script type="module">
@@ -175,98 +307,165 @@
         projectId: "smart-protector-77ffd",
         storageBucket: "smart-protector-77ffd.firebasestorage.app",
         messagingSenderId: "356436428527",
-        appId: "1:356436428527:web:92c01a6ead1dd0aa00bd1a",
-        measurementId: "G-2D8XVVBZM2"
+        appId: "1:356436428527:web:92c01a6ead1dd0aa00bd1a"
     };
 
-    // Inicializar Firebase
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // ================= CAMINHOS DO BANCO (CORRIGIDOS PARA O ESP32) =================
-    const caminhoTempoReal = "atual";      // ← Corrigido: sem "SmartProtector/"
-    const caminhoHistorico = "historico";  // ← Corrigido: sem "SmartProtector/"
+    // ================= CAMINHOS DO BANCO =================
+    const caminhoTempoReal = "atual";
+    const caminhoHistorico = "historico";
 
-    let dadosHistoricos = [];
+    let dadosCompletos = [];
+    let dadosFiltrados = [];
     let grafico = null;
-    let timeoutReconexao = null;
+    let filtroAtivo = false;
+    let dataInicioFiltro = null;
+    let dataFimFiltro = null;
 
-    // ================= FUNÇÃO COM TIMEOUT =================
-    async function fetchWithTimeout(promise, ms = 10000) {
-        return Promise.race([
-            promise,
-            new Promise((_, reject) => 
-                setTimeout(() => reject(new Error(`Timeout após ${ms}ms`)), ms)
-            )
-        ]);
-    }
+    // ================= TOGGLE DO PAINEL DE FILTRO =================
+    const btnToggle = document.getElementById('btnToggleFiltro');
+    const painelFiltro = document.getElementById('painelFiltro');
+    
+    btnToggle.addEventListener('click', () => {
+        painelFiltro.classList.toggle('aberto');
+        btnToggle.classList.toggle('aberto');
+    });
 
-    // ================= FUNÇÃO PARA FORMATAR TIMESTAMP =================
+    // ================= FUNÇÕES AUXILIARES =================
     function formatarTimestamp(timestamp) {
         if (!timestamp) return '---';
         try {
             const date = new Date(timestamp);
             if (isNaN(date.getTime())) return timestamp;
-            return date.toLocaleString('pt-BR', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
-            });
+            return date.toLocaleString('pt-BR');
         } catch (e) {
             return timestamp;
         }
     }
 
-    // ================= ATUALIZAR STATUS DO FIREBASE =================
     function atualizarStatusFirebase(conectado, mensagem = null) {
         const led = document.getElementById('statusLed');
         const text = document.getElementById('statusText');
         
         if (conectado) {
             led.classList.add('connected');
-            led.style.background = '#00ff88';
             text.textContent = mensagem || '✅ Firebase Online';
             document.getElementById('errorMsg').innerHTML = '';
         } else {
             led.classList.remove('connected');
-            led.style.background = '#ff4444';
             text.textContent = mensagem || '⚠️ Firebase Offline';
-            document.getElementById('errorMsg').innerHTML = mensagem || '⚠️ Falha na conexão com Firebase. Tentando reconectar...';
+            document.getElementById('errorMsg').innerHTML = mensagem || '⚠️ Falha na conexão';
         }
     }
 
-    // ================= CLASSIFICAÇÕES =================
     function classificarSinal(rssi) {
-        if (rssi >= -50) return { texto: "📶 Excelente", cor: "#00ff88", classe: "sinal-excelente" };
-        if (rssi >= -60) return { texto: "📶 Bom", cor: "#88ff88", classe: "sinal-bom" };
-        if (rssi >= -70) return { texto: "📶 Regular", cor: "#ffaa44", classe: "sinal-regular" };
-        if (rssi >= -80) return { texto: "📶 Ruim", cor: "#ff6644", classe: "sinal-ruim" };
-        return { texto: "📶 Péssimo", cor: "#ff4444", classe: "sinal-pessimo" };
+        if (rssi >= -50) return { texto: "📶 Excelente", cor: "#00ff88" };
+        if (rssi >= -60) return { texto: "📶 Bom", cor: "#88ff88" };
+        if (rssi >= -70) return { texto: "📶 Regular", cor: "#ffaa44" };
+        if (rssi >= -80) return { texto: "📶 Ruim", cor: "#ff6644" };
+        return { texto: "📶 Péssimo", cor: "#ff4444" };
     }
 
     function classificarFP(fp) {
-        if (fp >= 0.95) return { classe: "fp-bom", texto: "Ótimo" };
-        if (fp >= 0.85) return { classe: "fp-medio", texto: "Bom" };
-        if (fp >= 0.70) return { classe: "fp-medio", texto: "Regular" };
-        return { classe: "fp-ruim", texto: "Ruim" };
+        if (fp >= 0.95) return { classe: "fp-bom", texto: "Ótimo", cor: "#00ff88" };
+        if (fp >= 0.85) return { classe: "fp-medio", texto: "Bom", cor: "#ffaa44" };
+        if (fp >= 0.70) return { classe: "fp-medio", texto: "Regular", cor: "#ffaa44" };
+        return { classe: "fp-ruim", texto: "Ruim", cor: "#ff4444" };
     }
 
     function formatarEvento(evento) {
         if (!evento) return "✅ NORMAL";
         const eventos = {
-            "SOBRETENSAO": "🔴 SOBRETENSÃO", "SUBTENSAO": "🟡 SUBTENSÃO",
-            "SOBRECORRENTE": "🔥 SOBRECORRENTE", "FREQUENCIA FORA": "🔄 FREQ. FORA",
-            "QUEDA ENERGIA": "⚡ QUEDA ENERGIA", "FALHA SENSOR": "💀 FALHA SENSOR",
-            "SENSOR OFFLINE": "📡 SENSOR OFF", "NORMAL": "✅ NORMAL",
-            "DESLIGADO MANUAL": "👆 DESLIGADO MANUAL"
+            "SOBRETENSAO": "🔴 SOBRETENSÃO",
+            "SUBTENSAO": "🟡 SUBTENSÃO",
+            "SOBRECORRENTE": "🔥 SOBRECORRENTE",
+            "FREQUENCIA FORA": "🔄 FREQ. FORA",
+            "QUEDA ENERGIA": "⚡ QUEDA ENERGIA",
+            "FALHA SENSOR": "💀 FALHA SENSOR",
+            "NORMAL": "✅ NORMAL"
         };
         return eventos[evento.toUpperCase()] || `✅ ${evento}`;
     }
 
-    // ================= MONITORAMENTO EM TEMPO REAL =================
+    // ================= FILTRAR POR PERÍODO =================
+    function filtrarPorPeriodo() {
+        if (!filtroAtivo || !dataInicioFiltro || !dataFimFiltro) {
+            dadosFiltrados = [...dadosCompletos];
+        } else {
+            dadosFiltrados = dadosCompletos.filter(item => {
+                const dataItem = new Date(item.timestamp || item.dataHora);
+                if (isNaN(dataItem.getTime())) return true;
+                return dataItem >= dataInicioFiltro && dataItem <= dataFimFiltro;
+            });
+        }
+        
+        atualizarTabela(dadosFiltrados);
+        atualizarEstatisticas(dadosFiltrados);
+        atualizarGrafico(dadosFiltrados);
+    }
+
+    // ================= APLICAR PERÍODO PREDEFINIDO =================
+    window.aplicarPeriodoPredefinido = function(horas) {
+        filtroAtivo = true;
+        const agora = new Date();
+        dataFimFiltro = agora;
+        dataInicioFiltro = new Date(agora.getTime() - (horas * 3600000));
+        
+        // Atualiza os campos datetime-local
+        document.getElementById('dataInicio').value = formatarDateTimeLocal(dataInicioFiltro);
+        document.getElementById('dataFim').value = formatarDateTimeLocal(dataFimFiltro);
+        
+        filtrarPorPeriodo();
+        
+        // Fecha o painel após aplicar (opcional)
+        // painelFiltro.classList.remove('aberto');
+        // btnToggle.classList.remove('aberto');
+    }
+
+    // ================= APLICAR PERÍODO PERSONALIZADO =================
+    window.aplicarPeriodoPersonalizado = function() {
+        const inicioStr = document.getElementById('dataInicio').value;
+        const fimStr = document.getElementById('dataFim').value;
+        
+        if (!inicioStr || !fimStr) {
+            alert("⚠️ Selecione a data e hora de início e fim!");
+            return;
+        }
+        
+        filtroAtivo = true;
+        dataInicioFiltro = new Date(inicioStr);
+        dataFimFiltro = new Date(fimStr);
+        
+        if (dataInicioFiltro > dataFimFiltro) {
+            alert("⚠️ Data de início não pode ser maior que data de fim!");
+            return;
+        }
+        
+        filtrarPorPeriodo();
+    }
+
+    // ================= LIMPAR FILTRO =================
+    window.limparFiltroPersonalizado = function() {
+        filtroAtivo = false;
+        dataInicioFiltro = null;
+        dataFimFiltro = null;
+        document.getElementById('dataInicio').value = '';
+        document.getElementById('dataFim').value = '';
+        filtrarPorPeriodo();
+    }
+
+    // ================= FORMATAR DATETIME-LOCAL =================
+    function formatarDateTimeLocal(date) {
+        const ano = date.getFullYear();
+        const mes = String(date.getMonth() + 1).padStart(2, '0');
+        const dia = String(date.getDate()).padStart(2, '0');
+        const hora = String(date.getHours()).padStart(2, '0');
+        const minuto = String(date.getMinutes()).padStart(2, '0');
+        return `${ano}-${mes}-${dia}T${hora}:${minuto}`;
+    }
+  // ================= MONITORAMENTO EM TEMPO REAL =================
     function iniciarMonitoramentoTempoReal() {
         const atualRef = ref(db, caminhoTempoReal);
         
@@ -274,7 +473,7 @@
             try {
                 const data = snapshot.val();
                 if (!data) {
-                    atualizarStatusFirebase(false, "⚠️ Nenhum dado recebido do ESP32");
+                    atualizarStatusFirebase(false, "⚠️ Nenhum dado recebido");
                     return;
                 }
 
@@ -289,77 +488,62 @@
                 const fpEl = document.getElementById('fp');
                 fpEl.innerText = fp.toFixed(3);
                 const fpClass = classificarFP(fp);
-                fpEl.style.color = fpClass.classe === "fp-bom" ? "#00ff88" : (fpClass.classe === "fp-medio" ? "#ffaa44" : "#ff4444");
+                fpEl.style.color = fpClass.cor;
                 
                 const estado = data.estado || 'DESLIGADO';
                 const estadoEl = document.getElementById('estado');
                 estadoEl.innerText = estado;
-                estadoEl.className = 'valor ' + (estado === 'LIGADO' ? 'status-ligado' : 'status-desligado');
+                estadoEl.style.color = estado === 'LIGADO' ? '#00ff88' : '#ff4444';
                 
                 const sinalInfo = classificarSinal(data.rssi || -100);
                 const sinalEl = document.getElementById('sinalWifi');
                 sinalEl.innerHTML = sinalInfo.texto;
                 sinalEl.style.color = sinalInfo.cor;
-                sinalEl.className = `value ${sinalInfo.classe}`;
                 
                 document.getElementById('ultimaAtualizacao').innerText = new Date().toLocaleString('pt-BR');
                 
             } catch(error) {
-                console.error('Erro ao processar dados em tempo real:', error);
-                atualizarStatusFirebase(false, `❌ Erro: ${error.message}`);
+                console.error('Erro:', error);
             }
         }, (error) => {
-            console.error('Erro no listener Firebase:', error);
-            atualizarStatusFirebase(false, `❌ Erro de conexão: ${error.message}`);
+            console.error('Erro listener:', error);
+            atualizarStatusFirebase(false, `❌ ${error.message}`);
         });
     }
 
     // ================= CARREGAR HISTÓRICO =================
-    async function carregarHistorico(limiteHoras) {
+    async function carregarHistorico() {
         const tbody = document.getElementById('tbody');
-        const loadingIndicator = document.getElementById('loadingIndicator');
-        
-        tbody.innerHTML = '<tr><td colspan="9"><div class="loading"></div> 🔄 Baixando dados da Nuvem...</td></tr>';
-        loadingIndicator.style.display = 'inline-block';
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;">🔄 Carregando...</td></tr>';
         
         try {
-            const histRef = query(ref(db, caminhoHistorico), limitToLast(2000));
-            const snapshot = await fetchWithTimeout(get(histRef), 15000);
-            
+            const histRef = query(ref(db, caminhoHistorico), limitToLast(5000));
+            const snapshot = await get(histRef);
             const rawData = snapshot.val();
             
             if (!rawData) {
-                tbody.innerHTML = '<tr><td colspan="9">📭 Nenhum registro no banco de dados</td></tr>';
-                atualizarStatusFirebase(true, "✅ Conectado (sem dados históricos)");
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;">📭 Nenhum registro no histórico</td></tr>';
                 return;
             }
 
-            const dadosArray = Object.values(rawData);
-            dadosHistoricos = dadosArray;
+            dadosCompletos = Object.values(rawData);
+            dadosCompletos.sort((a, b) => {
+                const dateA = new Date(a.timestamp || a.dataHora);
+                const dateB = new Date(b.timestamp || b.dataHora);
+                return dateA - dateB;
+            });
             
-            const agora = new Date();
-            let dadosFiltrados = dadosArray;
-            
-            if (limiteHoras && limiteHoras < 720) {
-                dadosFiltrados = dadosArray.filter(item => {
-                    const dataItem = new Date(item.timestamp || item.dataHora); 
-                    if(isNaN(dataItem)) return true;
-                    return (agora - dataItem) / (1000 * 3600) <= limiteHoras;
-                });
-            }
+            dadosFiltrados = [...dadosCompletos];
             
             atualizarTabela(dadosFiltrados);
             atualizarEstatisticas(dadosFiltrados);
             atualizarGrafico(dadosFiltrados);
             
-            atualizarStatusFirebase(true, `✅ Online | ${dadosArray.length} registros`);
+            atualizarStatusFirebase(true, `✅ ${dadosCompletos.length} registros`);
             
         } catch(error) {
             console.error('Erro histórico:', error);
-            tbody.innerHTML = `<tr><td colspan="9">❌ Erro no Histórico: ${error.message}</td></tr>`;
-            atualizarStatusFirebase(false, `❌ Erro: ${error.message}`);
-        } finally {
-            loadingIndicator.style.display = 'none';
+            tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;">❌ Erro: ${error.message}</td></tr>`;
         }
     }
 
@@ -369,31 +553,24 @@
         tbody.innerHTML = '';
         
         if (dados.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="9">📭 Nenhum registro para este período</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;">📭 Nenhum registro para este período</td></tr>';
             return;
         }
         
         const reversed = [...dados].reverse();
-        const limite = Math.min(reversed.length, 1000);
+        const limite = Math.min(reversed.length, 500);
         
         for (let i = 0; i < limite; i++) {
             const item = reversed[i];
             const row = tbody.insertRow();
             
-            // Data/Hora formatada
-            const timestampFormatado = formatarTimestamp(item.timestamp || item.dataHora);
-            row.insertCell(0).innerText = timestampFormatado;
-            
+            row.insertCell(0).innerText = formatarTimestamp(item.timestamp || item.dataHora);
             row.insertCell(1).innerText = (item.tensao || 0).toFixed(1);
             row.insertCell(2).innerText = (item.frequencia || 0).toFixed(1);
             row.insertCell(3).innerText = (item.corrente || 0).toFixed(2);
             row.insertCell(4).innerText = (item.potencia || 0).toFixed(0);
             row.insertCell(5).innerText = (item.fp || 0).toFixed(3);
-            
-            const sinalInfo = classificarSinal(item.rssi || -100);
-            row.insertCell(6).innerHTML = sinalInfo.texto;
-            row.insertCell(6).style.color = sinalInfo.cor;
-            
+            row.insertCell(6).innerText = item.rssi || '---';
             row.insertCell(7).innerText = item.estado || '---';
             row.insertCell(8).innerHTML = formatarEvento(item.evento || 'NORMAL');
         }
@@ -420,8 +597,8 @@
                 maxTensao = Math.max(maxTensao, item.tensao);
                 count++;
             }
-            if (item.frequencia && item.frequencia > 0) somaFreq += item.frequencia;
-            if (item.fp && item.fp > 0) somaFp += item.fp;
+            if (item.frequencia) somaFreq += item.frequencia;
+            if (item.fp) somaFp += item.fp;
         }
         
         if (count > 0) {
@@ -440,23 +617,36 @@
             return;
         }
         
-        const dadosGrafico = dados.slice(-1000);
+        const dadosGrafico = dados.slice(-500);
         const labels = dadosGrafico.map(d => {
             const time = d.timestamp || d.dataHora || '';
-            const match = time.match(/(\d{2}):(\d{2})/);
-            return match ? match[0] : (typeof time === 'string' ? time.substring(11,16) : '--:--');
+            const match = time.match(/(\d{2}):(\d{2}):(\d{2})/);
+            return match ? `${match[1]}:${match[2]}` : '--:--';
         });
+        
+        const tensoes = dadosGrafico.map(d => d.tensao || 0);
+        
+        const minTensao = Math.min(...tensoes);
+        const maxTensao = Math.max(...tensoes);
+        const margem = 5;
+        
+        let yMin = Math.max(0, minTensao - margem);
+        let yMax = maxTensao + margem;
+        
+        if (yMax - yMin < 10) {
+            yMin = yMin - 5;
+            yMax = yMax + 5;
+        }
         
         if (grafico) grafico.destroy();
         
-        const ctx = document.getElementById('grafico').getContext('2d');
-        grafico = new Chart(ctx, {
+        grafico = new Chart(document.getElementById('grafico'), {
             type: 'line',
             data: {
                 labels: labels,
                 datasets: [{
                     label: 'Tensão (V)',
-                    data: dadosGrafico.map(d => d.tensao || 0),
+                    data: tensoes,
                     borderColor: '#00ff88',
                     backgroundColor: 'rgba(0,255,136,0.1)',
                     fill: true,
@@ -468,18 +658,26 @@
             options: {
                 responsive: true,
                 maintainAspectRatio: true,
-                plugins: { 
+                plugins: {
                     legend: { labels: { color: '#fff' } },
-                    tooltip: { mode: 'index', intersect: false }
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `Tensão: ${context.raw.toFixed(1)} V`;
+                            }
+                        }
+                    }
                 },
                 scales: {
-                    y: { 
-                        title: { display: true, text: 'Tensão (V)', color: '#aaa' }, 
+                    y: {
+                        min: yMin,
+                        max: yMax,
+                        title: { display: true, text: 'Tensão (V)', color: '#aaa' },
                         ticks: { color: '#aaa' },
                         grid: { color: 'rgba(255,255,255,0.1)' }
                     },
-                    x: { 
-                        title: { display: true, text: 'Horário', color: '#aaa' }, 
+                    x: {
+                        title: { display: true, text: 'Horário', color: '#aaa' },
                         ticks: { color: '#aaa', maxRotation: 45, minRotation: 45 },
                         grid: { color: 'rgba(255,255,255,0.1)' }
                     }
@@ -487,32 +685,26 @@
             }
         });
     }
-
-    // ================= EXPORTAR CSV =================
+        // ================= EXPORTAR CSV =================
     function exportarCSV() {
-        if (!dadosHistoricos?.length) { 
-            alert("📭 Sem dados para exportar!"); 
-            return; 
+        if (dadosFiltrados?.length === 0) {
+            alert("📭 Sem dados para exportar!");
+            return;
         }
         
         let csv = "\uFEFFData/Hora,Tensão (V),Frequência (Hz),Corrente (A),Potência (W),Fator Potência,RSSI (dBm),Estado,Evento\n";
         
-        for (const item of dadosHistoricos) {
-            const timestampFormatado = formatarTimestamp(item.timestamp || item.dataHora);
-            csv += `"${timestampFormatado}",${(item.tensao||0).toFixed(1)},${(item.frequencia||0).toFixed(1)},${(item.corrente||0).toFixed(2)},${(item.potencia||0).toFixed(0)},${(item.fp||0).toFixed(3)},${item.rssi||0},${item.estado||''},${item.evento||''}\n`;
+        for (const item of dadosFiltrados) {
+            csv += `"${formatarTimestamp(item.timestamp)}",${(item.tensao||0).toFixed(1)},${(item.frequencia||0).toFixed(1)},${(item.corrente||0).toFixed(2)},${(item.potencia||0).toFixed(0)},${(item.fp||0).toFixed(3)},${item.rssi||0},${item.estado||''},${item.evento||''}\n`;
         }
         
-        const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
+        const blob = new Blob([csv], {type: 'text/csv'});
         const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        link.href = url;
-        link.download = `smart_protector_cloud_${new Date().toISOString().slice(0,19).replace(/:/g,'-')}.csv`;
-        document.body.appendChild(link);
+        link.href = URL.createObjectURL(blob);
+        link.download = `smartprotector_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.csv`;
         link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
+        URL.revokeObjectURL(link.href);
         
-        // Feedback visual
         const btn = document.getElementById('exportarCSV');
         const originalText = btn.innerText;
         btn.innerText = '✅ Exportado!';
@@ -520,38 +712,18 @@
     }
 
     // ================= EVENTOS =================
-    document.getElementById('periodo').addEventListener('change', () => {
-        const periodo = parseInt(document.getElementById('periodo').value);
-        carregarHistorico(periodo);
-    });
-    
-    document.getElementById('atualizar').addEventListener('click', () => {
-        const periodo = parseInt(document.getElementById('periodo').value);
-        carregarHistorico(periodo);
-    });
-    
     document.getElementById('exportarCSV').addEventListener('click', exportarCSV);
 
     // ================= INICIALIZAÇÃO =================
-    console.log("🚀 Inicializando Dashboard...");
-    console.log(`📁 Caminho Tempo Real: ${caminhoTempoReal}`);
-    console.log(`📁 Caminho Histórico: ${caminhoHistorico}`);
+    console.log("🚀 Dashboard iniciado!");
     
     iniciarMonitoramentoTempoReal();
-    carregarHistorico(24);
+    carregarHistorico();
     
     // Auto-refresh a cada 30 segundos
     setInterval(() => {
-        const periodo = parseInt(document.getElementById('periodo').value);
-        carregarHistorico(periodo);
+        carregarHistorico();
     }, 30000);
-    
-    // Verificação de conexão periódica
-    setInterval(() => {
-        if (dadosHistoricos.length === 0) {
-            atualizarStatusFirebase(false, "⚠️ Aguardando dados do ESP32...");
-        }
-    }, 10000);
 </script>
 </body>
 </html>
