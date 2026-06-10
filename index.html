@@ -320,7 +320,6 @@
 <div class="watermark">🛡️ TCC - SMART PROTECTOR<br>Desenvolvido por Antônio Marcos F. S.<br>Engenharia Elétrica</div>
 
 <script type="module">
-    // ================= IMPORTAÇÕES FIREBASE (com remove incluído!) =================
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getDatabase, ref, onValue, query, limitToLast, get, set, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
@@ -357,6 +356,27 @@
         painelFiltro.classList.toggle('aberto');
         btnToggle.classList.toggle('aberto');
     });
+
+    // ================= FUNÇÃO DE FILTRO INTELIGENTE =================
+    // Remove apenas ZEROS e valores ABSURDOS (>500V)
+    // Mantém quedas de energia reais (50V, 30V, etc.)
+    function filtrarDadosValidos(dados) {
+        if (!dados || dados.length === 0) return [];
+        
+        return dados.filter(item => {
+            let tensao = item.tensao;
+            if (typeof tensao === 'string') tensao = parseFloat(tensao);
+            
+            // Remove valores exatamente ZERO (inicialização do ESP)
+            if (tensao === 0 || tensao === null) return false;
+            if (isNaN(tensao)) return false;
+            // Remove valores absurdos (>500V)
+            if (tensao > 500) return false;
+            
+            // Mantém todos os outros (incluindo quedas como 50V, 30V)
+            return true;
+        });
+    }
 
     // ================= FUNÇÕES AUXILIARES =================
     function formatarTimestamp(timestamp) {
@@ -414,7 +434,7 @@
         return eventos[evento.toUpperCase()] || `✅ ${evento}`;
     }
 
-    // ================= APAGAR DADOS ANTIGOS (CORRIGIDO) =================
+    // ================= APAGAR DADOS ANTIGOS =================
     window.apagarDadosAntigos = async function() {
         const periodo = prompt(
             "🗑️ APAGAR DADOS ANTIGOS\n\n" +
@@ -628,18 +648,27 @@
         }
     }
 
-    // ================= ATUALIZAR TABELA =================
+    // ================= ATUALIZAR TABELA (com filtro inteligente) =================
     function atualizarTabela(dados) {
         const tbody = document.getElementById('tbody');
         tbody.innerHTML = '';
-        if (dados.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;">📭 Nenhum registro para este período</td></tr>';
+        
+        // Aplica filtro inteligente (remove zeros, mantém quedas)
+        const dadosValidos = filtrarDadosValidos(dados);
+        
+        if (dadosValidos.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;">📭 Nenhum registro válido para este período</td></tr>';
             return;
         }
         
-        [...dados].reverse().slice(0, 500).forEach(item => {
+        const reversed = [...dadosValidos].reverse();
+        const limite = Math.min(reversed.length, 500);
+        
+        for (let i = 0; i < limite; i++) {
+            const item = reversed[i];
             const row = tbody.insertRow();
-            row.insertCell(0).innerText = formatarTimestamp(item.timestamp);
+            
+            row.insertCell(0).innerText = formatarTimestamp(item.timestamp || item.dataHora);
             row.insertCell(1).innerText = (item.tensao || 0).toFixed(1);
             row.insertCell(2).innerText = (item.frequencia || 0).toFixed(1);
             row.insertCell(3).innerText = (item.corrente || 0).toFixed(2);
@@ -648,24 +677,34 @@
             row.insertCell(6).innerText = item.rssi || '---';
             row.insertCell(7).innerText = item.estado || '---';
             row.insertCell(8).innerHTML = formatarEvento(item.evento || 'NORMAL');
-        });
-        document.getElementById('totalRegistros').innerText = dados.length;
+        }
+        
+        document.getElementById('totalRegistros').innerText = dadosValidos.length;
     }
 
-    // ================= ATUALIZAR ESTATÍSTICAS =================
+    // ================= ATUALIZAR ESTATÍSTICAS (com filtro inteligente) =================
     function atualizarEstatisticas(dados) {
-        if (dados.length === 0) {
+        // Aplica filtro inteligente para estatísticas
+        const dadosValidos = filtrarDadosValidos(dados);
+        
+        if (dadosValidos.length === 0) {
             ['mediaTensao', 'maxTensao', 'minTensao', 'mediaFreq', 'mediaFp'].forEach(id => 
                 document.getElementById(id).innerText = '---');
             return;
         }
         
-        let somaTensao = 0, somaFreq = 0, somaFp = 0, minTensao = Infinity, maxTensao = -Infinity, count = 0;
-        for (const item of dados) {
-            if (item.tensao && item.tensao > 0) {
-                somaTensao += item.tensao;
-                minTensao = Math.min(minTensao, item.tensao);
-                maxTensao = Math.max(maxTensao, item.tensao);
+        let somaTensao = 0, somaFreq = 0, somaFp = 0;
+        let minTensao = Infinity, maxTensao = -Infinity;
+        let count = 0;
+        
+        for (const item of dadosValidos) {
+            let tensao = item.tensao;
+            if (typeof tensao === 'string') tensao = parseFloat(tensao);
+            
+            if (tensao && tensao > 0) {
+                somaTensao += tensao;
+                minTensao = Math.min(minTensao, tensao);
+                maxTensao = Math.max(maxTensao, tensao);
                 count++;
             }
             if (item.frequencia) somaFreq += item.frequencia;
@@ -681,47 +720,102 @@
         }
     }
 
-    // ================= ATUALIZAR GRÁFICO =================
+    // ================= ATUALIZAR GRÁFICO (com filtro inteligente) =================
     function atualizarGrafico(dados) {
-        const dadosValidos = dados.filter(item => {
-            let t = item.tensao;
-            return t > 80 && t < 300;
-        }).slice(-100);
+        // Aplica filtro inteligente para o gráfico
+        let dadosValidos = filtrarDadosValidos(dados);
         
         if (dadosValidos.length === 0) {
             if (grafico) grafico.destroy();
             return;
         }
         
-        const tensoes = dadosValidos.map(d => d.tensao);
-        const minT = Math.min(...tensoes), maxT = Math.max(...tensoes);
-        const yMin = Math.max(0, minT - 10), yMax = maxT + 10;
+        const dadosGrafico = dadosValidos.slice(-100);
+        
+        const labels = dadosGrafico.map(d => {
+            let time = d.timestamp || '';
+            if (typeof time === 'string') {
+                const match = time.match(/(\d{2}):(\d{2}):(\d{2})/);
+                if (match) return `${match[1]}:${match[2]}`;
+                const match2 = time.match(/(\d{2}):(\d{2})/);
+                if (match2) return match2[0];
+            }
+            return '--:--';
+        });
+        
+        const tensoes = dadosGrafico.map(d => {
+            let v = d.tensao;
+            if (typeof v === 'string') v = parseFloat(v);
+            return v || 0;
+        });
+        
+        const valoresValidos = tensoes.filter(v => v > 0);
+        if (valoresValidos.length === 0) return;
+        
+        const minTensao = Math.min(...valoresValidos);
+        const maxTensao = Math.max(...valoresValidos);
+        const margem = 10;
+        
+        let yMin = Math.max(0, minTensao - margem);
+        let yMax = maxTensao + margem;
+        
+        if (yMax - yMin < 20) {
+            const center = (yMin + yMax) / 2;
+            yMin = center - 10;
+            yMax = center + 10;
+        }
         
         if (grafico) grafico.destroy();
         
         grafico = new Chart(document.getElementById('grafico'), {
             type: 'line',
             data: {
-                labels: dadosValidos.map(d => {
-                    let time = d.timestamp || '';
-                    let match = time.match(/(\d{2}):(\d{2})/);
-                    return match ? match[0] : '--:--';
-                }),
+                labels: labels,
                 datasets: [{
                     label: 'Tensão (V)',
                     data: tensoes,
                     borderColor: '#00ff88',
                     backgroundColor: 'rgba(0,255,136,0.1)',
+                    borderWidth: 2,
                     fill: true,
                     tension: 0.2,
-                    pointRadius: 3
+                    pointRadius: 3,
+                    pointBackgroundColor: '#00ff88',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 1
                 }]
             },
             options: {
                 responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { labels: { color: '#fff' } },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `⚡ Tensão: ${context.raw.toFixed(1)} V`;
+                            }
+                        }
+                    }
+                },
                 scales: {
-                    y: { min: yMin, max: yMax, title: { display: true, text: 'Tensão (V)', color: '#aaa' }, ticks: { color: '#aaa' } },
-                    x: { title: { display: true, text: 'Horário', color: '#aaa' }, ticks: { color: '#aaa', maxRotation: 45 } }
+                    y: {
+                        min: yMin,
+                        max: yMax,
+                        title: { display: true, text: 'Tensão (V)', color: '#aaa' },
+                        ticks: { 
+                            color: '#aaa',
+                            callback: function(value) {
+                                return value.toFixed(0) + 'V';
+                            }
+                        },
+                        grid: { color: 'rgba(255,255,255,0.1)' }
+                    },
+                    x: {
+                        title: { display: true, text: 'Horário', color: '#aaa' },
+                        ticks: { color: '#aaa', maxRotation: 45, minRotation: 45, maxTicksLimit: 10 },
+                        grid: { color: 'rgba(255,255,255,0.1)' }
+                    }
                 }
             }
         });
@@ -729,9 +823,16 @@
     
     // ================= EXPORTAR CSV =================
     function exportarCSV() {
-        if (!dadosFiltrados?.length) { alert("📭 Sem dados para exportar!"); return; }
+        // Aplica filtro inteligente para exportação também
+        const dadosValidos = filtrarDadosValidos(dadosFiltrados);
+        
+        if (!dadosValidos.length) { 
+            alert("📭 Sem dados válidos para exportar!"); 
+            return; 
+        }
+        
         let csv = "\uFEFFData/Hora,Tensão (V),Frequência (Hz),Corrente (A),Potência (W),Fator Potência,RSSI (dBm),Estado,Evento\n";
-        for (const item of dadosFiltrados) {
+        for (const item of dadosValidos) {
             csv += `"${formatarTimestamp(item.timestamp)}",${(item.tensao||0).toFixed(1)},${(item.frequencia||0).toFixed(1)},${(item.corrente||0).toFixed(2)},${(item.potencia||0).toFixed(0)},${(item.fp||0).toFixed(3)},${item.rssi||0},${item.estado||''},${item.evento||''}\n`;
         }
         const blob = new Blob([csv], {type: 'text/csv'});
@@ -740,6 +841,7 @@
         link.download = `smartprotector_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.csv`;
         link.click();
         URL.revokeObjectURL(link.href);
+        
         const btn = document.getElementById('exportarCSV');
         const original = btn.innerText;
         btn.innerText = '✅ Exportado!';
