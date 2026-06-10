@@ -12,7 +12,6 @@
         h1 { text-align: center; margin-bottom: 20px; color: #00ff88; }
         h2 { margin: 20px 0 10px 0; color: #aaa; font-size: 1.2rem; }
         
-        /* Firebase Status Indicator */
         .firebase-status {
             position: fixed;
             top: 20px;
@@ -65,7 +64,6 @@
         .sinal-ruim { color: #ff6644; }
         .sinal-pessimo { color: #ff4444; }
         
-        /* Botão de filtro expansível */
         .btn-filtro {
             background: #16213e;
             border: 1px solid #00ff88;
@@ -92,7 +90,6 @@
             transform: rotate(180deg);
         }
         
-        /* Painel de filtro (escondido por padrão) */
         .painel-filtro {
             background: #16213e;
             border-radius: 15px;
@@ -232,14 +229,13 @@
     </style>
 </head>
 <body>
-<!-- Firebase Status Indicator -->
 <div class="firebase-status">
     <div class="status-led" id="statusLed"></div>
     <span id="statusText">Conectando...</span>
 </div>
 
 <div class="container">
-    <h1>☁️ SMART PROTECTOR</h1>
+    <h1>☁️ SMART PROTECTOR - CLOUD DASHBOARD</h1>
     
     <div class="cards">
         <div class="card"><h4>⚡ TENSÃO</h4><div class="valor" id="tensao">---</div><div class="unidade">Volts (V)</div></div>
@@ -250,13 +246,11 @@
         <div class="card"><h4>🔒 ESTADO</h4><div class="valor" id="estado">---</div><div class="unidade">Painel</div></div>
     </div>
     
-    <!-- Botão para abrir/fechar filtro -->
     <button class="btn-filtro" id="btnToggleFiltro">
         <span>📅</span> Filtrar por Período
         <span class="seta">▼</span>
     </button>
     
-    <!-- Painel de filtro (escondido inicialmente) -->
     <div class="painel-filtro" id="painelFiltro">
         <div class="filtros-row">
             <label>⚡ Período Rápido:</label>
@@ -326,8 +320,9 @@
 <div class="watermark">🛡️ TCC - SMART PROTECTOR<br>Desenvolvido por Antônio Marcos F. S.<br>Engenharia Elétrica</div>
 
 <script type="module">
+    // ================= IMPORTAÇÕES FIREBASE (com remove incluído!) =================
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getDatabase, ref, onValue, query, limitToLast, get, set } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+    import { getDatabase, ref, onValue, query, limitToLast, get, set, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
     // ================= CONFIGURAÇÃO FIREBASE =================
     const firebaseConfig = {
@@ -419,121 +414,89 @@
         return eventos[evento.toUpperCase()] || `✅ ${evento}`;
     }
 
-   // ================= APAGAR DADOS ANTIGOS =================
-window.apagarDadosAntigos = async function() {
-    // 1º passo: Mostra opções de período
-    const periodo = prompt(
-        "🗑️ APAGAR DADOS ANTIGOS\n\n" +
-        "Escolha o período que deseja MANTER:\n\n" +
-        "1 - Manter apenas últimas 24 horas\n" +
-        "2 - Manter apenas últimos 7 dias\n" +
-        "3 - Manter apenas últimos 30 dias\n" +
-        "4 - Personalizar (digitar horas)\n\n" +
-        "Digite o número da opção:"
-    );
-    
-    if (!periodo) return;
-    
-    let horasManter = 0;
-    let textoPeriodo = "";
-    
-    switch(periodo) {
-        case "1":
-            horasManter = 24;
-            textoPeriodo = "24 horas";
-            break;
-        case "2":
-            horasManter = 168;
-            textoPeriodo = "7 dias";
-            break;
-        case "3":
-            horasManter = 720;
-            textoPeriodo = "30 dias";
-            break;
-        case "4":
-            horasManter = parseInt(prompt("Digite quantas horas deseja MANTER:", "48"));
-            if (isNaN(horasManter) || horasManter < 1) {
-                alert("❌ Valor inválido!");
-                return;
-            }
-            textoPeriodo = `${horasManter} horas`;
-            break;
-        default:
-            alert("❌ Opção inválida!");
-            return;
-    }
-    
-    const dataLimite = new Date();
-    dataLimite.setHours(dataLimite.getHours() - horasManter);
-    const dataFormatada = dataLimite.toLocaleString('pt-BR');
-    
-    const confirmar = confirm(
-        "⚠️ ATENÇÃO! ⚠️\n\n" +
-        `Você está prestes a APAGAR todos os registros\n` +
-        `MAIS ANTIGOS que ${textoPeriodo}.\n\n` +
-        `📅 Data limite: ${dataFormatada}\n\n` +
-        `Registros MAIS NOVOS que isso serão MANTIDOS.\n\n` +
-        `Tem certeza que deseja continuar?`
-    );
-    
-    if (!confirmar) return;
-    
-    const senha = prompt("🔒 Digite a senha PIN para confirmar a exclusão:");
-    
-    if (senha !== "2026") {
-        alert("❌ Senha incorreta! Operação cancelada.");
-        return;
-    }
-    
-    const confirmarFinal = confirm(
-        "🔥 ÚLTIMA CHANCE! 🔥\n\n" +
-        "Os dados ANTIGOS serão apagados PERMANENTEMENTE.\n" +
-        "Esta ação NÃO pode ser desfeita.\n\n" +
-        "Deseja realmente prosseguir?"
-    );
-    
-    if (!confirmarFinal) return;
-    
-    try {
-        const btn = document.getElementById('btnApagarAntigos');
-        const textoOriginal = btn.innerText;
-        btn.innerText = '⏳ Apagando...';
-        btn.disabled = true;
-        
-        let apagados = 0;
-        let mantidos = 0;
-        
-        for (const item of dadosCompletos) {
-            const dataRegistro = new Date(item.timestamp);
-            if (dataRegistro < dataLimite && item.id) {
-                // 🔥 CORREÇÃO AQUI - Usar remove() corretamente
-                await remove(ref(db, `${caminhoHistorico}/${item.id}`));
-                apagados++;
-            } else {
-                mantidos++;
-            }
-        }
-        
-        alert(
-            `✅ EXCLUSÃO CONCLUÍDA! ✅\n\n` +
-            `🗑️ Registros apagados: ${apagados}\n` +
-            `📦 Registros mantidos: ${mantidos}\n` +
-            `📅 Dados mantidos a partir de: ${dataFormatada}`
+    // ================= APAGAR DADOS ANTIGOS (CORRIGIDO) =================
+    window.apagarDadosAntigos = async function() {
+        const periodo = prompt(
+            "🗑️ APAGAR DADOS ANTIGOS\n\n" +
+            "Escolha o período que deseja MANTER:\n\n" +
+            "1 - Manter apenas últimas 24 horas\n" +
+            "2 - Manter apenas últimos 7 dias\n" +
+            "3 - Manter apenas últimos 30 dias\n" +
+            "4 - Personalizar (digitar horas)\n\n" +
+            "Digite o número da opção:"
         );
         
-        await carregarHistorico();
+        if (!periodo) return;
         
-        btn.innerText = textoOriginal;
-        btn.disabled = false;
+        let horasManter = 0;
+        let textoPeriodo = "";
         
-    } catch(error) {
-        console.error("Erro ao apagar:", error);
-        alert("❌ Erro ao apagar dados: " + error.message);
-        const btn = document.getElementById('btnApagarAntigos');
-        btn.innerText = '🗑️ Apagar Dados Antigos';
-        btn.disabled = false;
-    }
-};    // ================= FILTRAR POR PERÍODO =================
+        switch(periodo) {
+            case "1": horasManter = 24; textoPeriodo = "24 horas"; break;
+            case "2": horasManter = 168; textoPeriodo = "7 dias"; break;
+            case "3": horasManter = 720; textoPeriodo = "30 dias"; break;
+            case "4":
+                horasManter = parseInt(prompt("Digite quantas horas deseja MANTER:", "48"));
+                if (isNaN(horasManter) || horasManter < 1) {
+                    alert("❌ Valor inválido!");
+                    return;
+                }
+                textoPeriodo = `${horasManter} horas`;
+                break;
+            default: alert("❌ Opção inválida!"); return;
+        }
+        
+        const dataLimite = new Date();
+        dataLimite.setHours(dataLimite.getHours() - horasManter);
+        const dataFormatada = dataLimite.toLocaleString('pt-BR');
+        
+        if (!confirm("⚠️ ATENÇÃO! ⚠️\n\n" +
+            `Você está prestes a APAGAR todos os registros\n` +
+            `MAIS ANTIGOS que ${textoPeriodo}.\n\n` +
+            `📅 Data limite: ${dataFormatada}\n\n` +
+            `Tem certeza?`)) return;
+        
+        const senha = prompt("🔒 Digite a senha PIN (2026):");
+        if (senha !== "2026") {
+            alert("❌ Senha incorreta!");
+            return;
+        }
+        
+        if (!confirm("🔥 ÚLTIMA CHANCE! Os dados serão apagados PERMANENTEMENTE.\nContinuar?")) return;
+        
+        try {
+            const btn = document.getElementById('btnApagarAntigos');
+            const textoOriginal = btn.innerText;
+            btn.innerText = '⏳ Apagando...';
+            btn.disabled = true;
+            
+            let apagados = 0;
+            let mantidos = 0;
+            
+            for (const item of dadosCompletos) {
+                const dataRegistro = new Date(item.timestamp);
+                if (dataRegistro < dataLimite && item.id) {
+                    await remove(ref(db, `${caminhoHistorico}/${item.id}`));
+                    apagados++;
+                } else {
+                    mantidos++;
+                }
+            }
+            
+            alert(`✅ EXCLUSÃO CONCLUÍDA!\n🗑️ Apagados: ${apagados}\n📦 Mantidos: ${mantidos}`);
+            await carregarHistorico();
+            
+            btn.innerText = textoOriginal;
+            btn.disabled = false;
+        } catch(error) {
+            console.error("Erro:", error);
+            alert("❌ Erro: " + error.message);
+            document.getElementById('btnApagarAntigos').innerText = '🗑️ Apagar Dados Antigos';
+            document.getElementById('btnApagarAntigos').disabled = false;
+        }
+    };
+
+    // ================= FILTRAR POR PERÍODO =================
     function filtrarPorPeriodo() {
         if (!filtroAtivo || !dataInicioFiltro || !dataFimFiltro) {
             dadosFiltrados = [...dadosCompletos];
@@ -550,7 +513,6 @@ window.apagarDadosAntigos = async function() {
         atualizarGrafico(dadosFiltrados);
     }
 
-    // ================= APLICAR PERÍODO PREDEFINIDO =================
     window.aplicarPeriodoPredefinido = function(horas) {
         filtroAtivo = true;
         const agora = new Date();
@@ -559,33 +521,26 @@ window.apagarDadosAntigos = async function() {
         
         document.getElementById('dataInicio').value = formatarDateTimeLocal(dataInicioFiltro);
         document.getElementById('dataFim').value = formatarDateTimeLocal(dataFimFiltro);
-        
         filtrarPorPeriodo();
     }
 
-    // ================= APLICAR PERÍODO PERSONALIZADO =================
     window.aplicarPeriodoPersonalizado = function() {
         const inicioStr = document.getElementById('dataInicio').value;
         const fimStr = document.getElementById('dataFim').value;
-        
         if (!inicioStr || !fimStr) {
             alert("⚠️ Selecione a data e hora de início e fim!");
             return;
         }
-        
         filtroAtivo = true;
         dataInicioFiltro = new Date(inicioStr);
         dataFimFiltro = new Date(fimStr);
-        
         if (dataInicioFiltro > dataFimFiltro) {
             alert("⚠️ Data de início não pode ser maior que data de fim!");
             return;
         }
-        
         filtrarPorPeriodo();
     }
 
-    // ================= LIMPAR FILTRO =================
     window.limparFiltroPersonalizado = function() {
         filtroAtivo = false;
         dataInicioFiltro = null;
@@ -595,7 +550,6 @@ window.apagarDadosAntigos = async function() {
         filtrarPorPeriodo();
     }
 
-    // ================= FORMATAR DATETIME-LOCAL =================
     function formatarDateTimeLocal(date) {
         const ano = date.getFullYear();
         const mes = String(date.getMonth() + 1).padStart(2, '0');
@@ -608,7 +562,6 @@ window.apagarDadosAntigos = async function() {
     // ================= MONITORAMENTO EM TEMPO REAL =================
     function iniciarMonitoramentoTempoReal() {
         const atualRef = ref(db, caminhoTempoReal);
-        
         onValue(atualRef, (snapshot) => {
             try {
                 const data = snapshot.val();
@@ -616,7 +569,6 @@ window.apagarDadosAntigos = async function() {
                     atualizarStatusFirebase(false, "⚠️ Nenhum dado recebido");
                     return;
                 }
-
                 atualizarStatusFirebase(true, "✅ Firebase Online");
                 
                 document.getElementById('tensao').innerText = (data.tensao || 0).toFixed(1);
@@ -627,8 +579,7 @@ window.apagarDadosAntigos = async function() {
                 const fp = data.fp || 0;
                 const fpEl = document.getElementById('fp');
                 fpEl.innerText = fp.toFixed(3);
-                const fpClass = classificarFP(fp);
-                fpEl.style.color = fpClass.cor;
+                fpEl.style.color = classificarFP(fp).cor;
                 
                 const estado = data.estado || 'DESLIGADO';
                 const estadoEl = document.getElementById('estado');
@@ -641,10 +592,7 @@ window.apagarDadosAntigos = async function() {
                 sinalEl.style.color = sinalInfo.cor;
                 
                 document.getElementById('ultimaAtualizacao').innerText = new Date().toLocaleString('pt-BR');
-                
-            } catch(error) {
-                console.error('Erro:', error);
-            }
+            } catch(error) { console.error('Erro:', error); }
         }, (error) => {
             console.error('Erro listener:', error);
             atualizarStatusFirebase(false, `❌ ${error.message}`);
@@ -654,7 +602,7 @@ window.apagarDadosAntigos = async function() {
     // ================= CARREGAR HISTÓRICO =================
     async function carregarHistorico() {
         const tbody = document.getElementById('tbody');
-        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;"><div class="loading"></div> 🔄 Carregando...</td></tr>';
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;"><div class="loading"></div> 🔄 Carregando...</td></tr>`;
         
         try {
             const histRef = query(ref(db, caminhoHistorico), limitToLast(5000));
@@ -666,28 +614,14 @@ window.apagarDadosAntigos = async function() {
                 return;
             }
 
-            dadosCompletos = [];
-            for (const [key, value] of Object.entries(rawData)) {
-                dadosCompletos.push({
-                    id: key,
-                    ...value
-                });
-            }
-            
-            dadosCompletos.sort((a, b) => {
-                const dateA = new Date(a.timestamp || a.dataHora);
-                const dateB = new Date(b.timestamp || b.dataHora);
-                return dateA - dateB;
-            });
-            
+            dadosCompletos = Object.entries(rawData).map(([key, value]) => ({ id: key, ...value }));
+            dadosCompletos.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
             dadosFiltrados = [...dadosCompletos];
             
             atualizarTabela(dadosFiltrados);
             atualizarEstatisticas(dadosFiltrados);
             atualizarGrafico(dadosFiltrados);
-            
             atualizarStatusFirebase(true, `✅ ${dadosCompletos.length} registros`);
-            
         } catch(error) {
             console.error('Erro histórico:', error);
             tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;">❌ Erro: ${error.message}</td></tr>`;
@@ -698,20 +632,14 @@ window.apagarDadosAntigos = async function() {
     function atualizarTabela(dados) {
         const tbody = document.getElementById('tbody');
         tbody.innerHTML = '';
-        
         if (dados.length === 0) {
             tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;">📭 Nenhum registro para este período</td></tr>';
             return;
         }
         
-        const reversed = [...dados].reverse();
-        const limite = Math.min(reversed.length, 500);
-        
-        for (let i = 0; i < limite; i++) {
-            const item = reversed[i];
+        [...dados].reverse().slice(0, 500).forEach(item => {
             const row = tbody.insertRow();
-            
-            row.insertCell(0).innerText = formatarTimestamp(item.timestamp || item.dataHora);
+            row.insertCell(0).innerText = formatarTimestamp(item.timestamp);
             row.insertCell(1).innerText = (item.tensao || 0).toFixed(1);
             row.insertCell(2).innerText = (item.frequencia || 0).toFixed(1);
             row.insertCell(3).innerText = (item.corrente || 0).toFixed(2);
@@ -720,23 +648,19 @@ window.apagarDadosAntigos = async function() {
             row.insertCell(6).innerText = item.rssi || '---';
             row.insertCell(7).innerText = item.estado || '---';
             row.insertCell(8).innerHTML = formatarEvento(item.evento || 'NORMAL');
-        }
-        
+        });
         document.getElementById('totalRegistros').innerText = dados.length;
     }
 
     // ================= ATUALIZAR ESTATÍSTICAS =================
     function atualizarEstatisticas(dados) {
         if (dados.length === 0) {
-            const stats = ['mediaTensao', 'maxTensao', 'minTensao', 'mediaFreq', 'mediaFp'];
-            stats.forEach(id => document.getElementById(id).innerText = '---');
+            ['mediaTensao', 'maxTensao', 'minTensao', 'mediaFreq', 'mediaFp'].forEach(id => 
+                document.getElementById(id).innerText = '---');
             return;
         }
         
-        let somaTensao = 0, somaFreq = 0, somaFp = 0;
-        let minTensao = Infinity, maxTensao = -Infinity;
-        let count = 0;
-        
+        let somaTensao = 0, somaFreq = 0, somaFp = 0, minTensao = Infinity, maxTensao = -Infinity, count = 0;
         for (const item of dados) {
             if (item.tensao && item.tensao > 0) {
                 somaTensao += item.tensao;
@@ -759,154 +683,67 @@ window.apagarDadosAntigos = async function() {
 
     // ================= ATUALIZAR GRÁFICO =================
     function atualizarGrafico(dados) {
-        console.log("📊 Atualizando gráfico com", dados?.length || 0, "pontos");
+        const dadosValidos = dados.filter(item => {
+            let t = item.tensao;
+            return t > 80 && t < 300;
+        }).slice(-100);
         
-        if (!dados || dados.length === 0) {
-            if (grafico) {
-                grafico.destroy();
-                grafico = null;
-            }
-            return;
-        }
-        
-        let dadosFiltrados = dados.filter(item => {
-            let tensao = item.tensao;
-            if (typeof tensao === 'string') tensao = parseFloat(tensao);
-            return tensao > 80 && tensao < 300;
-        });
-        
-        console.log(`📈 Removidos ${dados.length - dadosFiltrados.length} pontos inválidos`);
-        
-        if (dadosFiltrados.length === 0) {
-            console.log("⚠️ Nenhum dado válido para o gráfico");
+        if (dadosValidos.length === 0) {
             if (grafico) grafico.destroy();
             return;
         }
         
-        const dadosGrafico = dadosFiltrados.slice(-100);
+        const tensoes = dadosValidos.map(d => d.tensao);
+        const minT = Math.min(...tensoes), maxT = Math.max(...tensoes);
+        const yMin = Math.max(0, minT - 10), yMax = maxT + 10;
         
-        const labels = dadosGrafico.map(d => {
-            let time = d.timestamp || '';
-            if (typeof time === 'string') {
-                const match = time.match(/(\d{2}):(\d{2}):(\d{2})/);
-                if (match) return `${match[1]}:${match[2]}`;
-                const match2 = time.match(/(\d{2}):(\d{2})/);
-                if (match2) return match2[0];
-            }
-            return '--:--';
-        });
+        if (grafico) grafico.destroy();
         
-        const tensoes = dadosGrafico.map(d => {
-            let v = d.tensao;
-            if (typeof v === 'string') v = parseFloat(v);
-            return v || 0;
-        });
-        
-        const valoresValidos = tensoes.filter(v => v > 80 && v < 300);
-        if (valoresValidos.length === 0) return;
-        
-        const minTensao = Math.min(...valoresValidos);
-        const maxTensao = Math.max(...valoresValidos);
-        const margem = 10;
-        
-        let yMin = Math.max(0, minTensao - margem);
-        let yMax = maxTensao + margem;
-        
-        if (yMax - yMin < 20) {
-            const center = (yMin + yMax) / 2;
-            yMin = center - 10;
-            yMax = center + 10;
-        }
-        
-        console.log(`📈 Escala: ${yMin.toFixed(0)}V - ${yMax.toFixed(0)}V`);
-        
-        if (grafico) {
-            grafico.destroy();
-            grafico = null;
-        }
-        
-        const ctx = document.getElementById('grafico').getContext('2d');
-        
-        grafico = new Chart(ctx, {
+        grafico = new Chart(document.getElementById('grafico'), {
             type: 'line',
             data: {
-                labels: labels,
+                labels: dadosValidos.map(d => {
+                    let time = d.timestamp || '';
+                    let match = time.match(/(\d{2}):(\d{2})/);
+                    return match ? match[0] : '--:--';
+                }),
                 datasets: [{
                     label: 'Tensão (V)',
                     data: tensoes,
                     borderColor: '#00ff88',
                     backgroundColor: 'rgba(0,255,136,0.1)',
-                    borderWidth: 2,
                     fill: true,
                     tension: 0.2,
-                    pointRadius: 3,
-                    pointBackgroundColor: '#00ff88',
-                    pointBorderColor: '#fff',
-                    pointBorderWidth: 1
+                    pointRadius: 3
                 }]
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: true,
-                plugins: {
-                    legend: { labels: { color: '#fff' } },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return `⚡ Tensão: ${context.raw.toFixed(1)} V`;
-                            }
-                        }
-                    }
-                },
                 scales: {
-                    y: {
-                        min: yMin,
-                        max: yMax,
-                        title: { display: true, text: 'Tensão (V)', color: '#aaa' },
-                        ticks: { 
-                            color: '#aaa',
-                            callback: function(value) {
-                                return value.toFixed(0) + 'V';
-                            }
-                        },
-                        grid: { color: 'rgba(255,255,255,0.1)' }
-                    },
-                    x: {
-                        title: { display: true, text: 'Horário', color: '#aaa' },
-                        ticks: { color: '#aaa', maxRotation: 45, minRotation: 45, maxTicksLimit: 10 },
-                        grid: { color: 'rgba(255,255,255,0.1)' }
-                    }
+                    y: { min: yMin, max: yMax, title: { display: true, text: 'Tensão (V)', color: '#aaa' }, ticks: { color: '#aaa' } },
+                    x: { title: { display: true, text: 'Horário', color: '#aaa' }, ticks: { color: '#aaa', maxRotation: 45 } }
                 }
             }
         });
-        
-        console.log("✅ Gráfico atualizado!");
     }
     
     // ================= EXPORTAR CSV =================
     function exportarCSV() {
-        if (dadosFiltrados?.length === 0) {
-            alert("📭 Sem dados para exportar!");
-            return;
-        }
-        
+        if (!dadosFiltrados?.length) { alert("📭 Sem dados para exportar!"); return; }
         let csv = "\uFEFFData/Hora,Tensão (V),Frequência (Hz),Corrente (A),Potência (W),Fator Potência,RSSI (dBm),Estado,Evento\n";
-        
         for (const item of dadosFiltrados) {
             csv += `"${formatarTimestamp(item.timestamp)}",${(item.tensao||0).toFixed(1)},${(item.frequencia||0).toFixed(1)},${(item.corrente||0).toFixed(2)},${(item.potencia||0).toFixed(0)},${(item.fp||0).toFixed(3)},${item.rssi||0},${item.estado||''},${item.evento||''}\n`;
         }
-        
         const blob = new Blob([csv], {type: 'text/csv'});
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
         link.download = `smartprotector_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.csv`;
         link.click();
         URL.revokeObjectURL(link.href);
-        
         const btn = document.getElementById('exportarCSV');
-        const originalText = btn.innerText;
+        const original = btn.innerText;
         btn.innerText = '✅ Exportado!';
-        setTimeout(() => { btn.innerText = originalText; }, 2000);
+        setTimeout(() => btn.innerText = original, 2000);
     }
 
     // ================= EVENTOS =================
@@ -914,14 +751,9 @@ window.apagarDadosAntigos = async function() {
     document.getElementById('btnApagarAntigos').addEventListener('click', () => window.apagarDadosAntigos());
 
     // ================= INICIALIZAÇÃO =================
-    console.log("🚀 Dashboard iniciado!");
-    
     iniciarMonitoramentoTempoReal();
     carregarHistorico();
-    
-    setInterval(() => {
-        carregarHistorico();
-    }, 30000);
+    setInterval(() => carregarHistorico(), 30000);
 </script>
 </body>
 </html>
