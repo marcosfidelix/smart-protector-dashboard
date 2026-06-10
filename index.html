@@ -420,19 +420,20 @@
         return { classe: "fp-ruim", texto: "Ruim", cor: "#ff4444" };
     }
 
-    function formatarEvento(evento) {
-        if (!evento) return "✅ NORMAL";
-        const eventos = {
-            "SOBRETENSAO": "🔴 SOBRETENSÃO",
-            "SUBTENSAO": "🟡 SUBTENSÃO",
-            "SOBRECORRENTE": "🔥 SOBRECORRENTE",
-            "FREQUENCIA FORA": "🔄 FREQ. FORA",
-            "QUEDA ENERGIA": "⚡ QUEDA ENERGIA",
-            "FALHA SENSOR": "💀 FALHA SENSOR",
-            "NORMAL": "✅ NORMAL"
-        };
-        return eventos[evento.toUpperCase()] || `✅ ${evento}`;
-    }
+function formatarEvento(evento) {
+    const eventos = {
+        "SOBRETENSAO": "🔴 SOBRETENSÃO",
+        "SUBTENSAO": "🟡 SUBTENSÃO",
+        "SOBRECORRENTE": "🔥 SOBRECORRENTE",
+        "FREQUENCIA FORA": "🔄 FREQ. FORA",
+        "QUEDA ENERGIA": "⚡ QUEDA ENERGIA",
+        "FALHA SENSOR": "💀 FALHA SENSOR",
+        "SENSOR OFFLINE": "📡 SENSOR OFF",
+        "DESLIGADO MANUAL": "👆 DESLIGADO MANUAL",
+        "NORMAL": "✅ NORMAL"
+    };
+    return eventos[evento] || `✅ ${evento}`;
+}
 
     // ================= APAGAR DADOS ANTIGOS =================
     window.apagarDadosAntigos = async function() {
@@ -579,45 +580,73 @@
         return `${ano}-${mes}-${dia}T${hora}:${minuto}`;
     }
     
-    // ================= MONITORAMENTO EM TEMPO REAL =================
-    function iniciarMonitoramentoTempoReal() {
-        const atualRef = ref(db, caminhoTempoReal);
-        onValue(atualRef, (snapshot) => {
-            try {
-                const data = snapshot.val();
-                if (!data) {
-                    atualizarStatusFirebase(false, "⚠️ Nenhum dado recebido");
-                    return;
-                }
-                atualizarStatusFirebase(true, "✅ Firebase Online");
+// ================= MONITORAMENTO EM TEMPO REAL =================
+function iniciarMonitoramentoTempoReal() {
+    const atualRef = ref(db, caminhoTempoReal);
+    
+    onValue(atualRef, (snapshot) => {
+        try {
+            const data = snapshot.val();
+            if (!data) {
+                atualizarStatusFirebase(false, "⚠️ Nenhum dado recebido");
+                return;
+            }
+
+            atualizarStatusFirebase(true, "✅ Firebase Online");
+            
+            // Atualiza cards de medição
+            document.getElementById('tensao').innerText = (data.tensao || 0).toFixed(1);
+            document.getElementById('frequencia').innerText = (data.frequencia || 0).toFixed(1);
+            document.getElementById('corrente').innerText = (data.corrente || 0).toFixed(2);
+            document.getElementById('potencia').innerText = (data.potencia || 0).toFixed(0);
+            
+            const fp = data.fp || 0;
+            const fpEl = document.getElementById('fp');
+            fpEl.innerText = fp.toFixed(3);
+            fpEl.style.color = classificarFP(fp).cor;
+            
+            // ========== CARD ESTADO MELHORADO ==========
+            const estado = data.estado || 'DESLIGADO';
+            const evento = data.evento || '';
+            const estadoEl = document.getElementById('estado');
+            
+            if (estado === 'LIGADO') {
+                estadoEl.innerText = 'LIGADO';
+                estadoEl.style.color = '#00ff88';
+            } else {
+                // Mapeia eventos para texto legível
+                const mapaEventos = {
+                    "SOBRETENSAO": "SOBRETENSÃO",
+                    "SUBTENSAO": "SUBTENSÃO",
+                    "SOBRECORRENTE": "SOBRECORRENTE",
+                    "FREQUENCIA FORA": "FREQ. FORA",
+                    "QUEDA ENERGIA": "QUEDA ENERGIA",
+                    "FALHA SENSOR": "FALHA SENSOR",
+                    "SENSOR OFFLINE": "SENSOR OFF",
+                    "DESLIGADO MANUAL": "DESLIGADO MANUAL"
+                };
                 
-                document.getElementById('tensao').innerText = (data.tensao || 0).toFixed(1);
-                document.getElementById('frequencia').innerText = (data.frequencia || 0).toFixed(1);
-                document.getElementById('corrente').innerText = (data.corrente || 0).toFixed(2);
-                document.getElementById('potencia').innerText = (data.potencia || 0).toFixed(0);
-                
-                const fp = data.fp || 0;
-                const fpEl = document.getElementById('fp');
-                fpEl.innerText = fp.toFixed(3);
-                fpEl.style.color = classificarFP(fp).cor;
-                
-                const estado = data.estado || 'DESLIGADO';
-                const estadoEl = document.getElementById('estado');
-                estadoEl.innerText = estado;
-                estadoEl.style.color = estado === 'LIGADO' ? '#00ff88' : '#ff4444';
-                
-                const sinalInfo = classificarSinal(data.rssi || -100);
-                const sinalEl = document.getElementById('sinalWifi');
-                sinalEl.innerHTML = sinalInfo.texto;
-                sinalEl.style.color = sinalInfo.cor;
-                
-                document.getElementById('ultimaAtualizacao').innerText = new Date().toLocaleString('pt-BR');
-            } catch(error) { console.error('Erro:', error); }
-        }, (error) => {
-            console.error('Erro listener:', error);
-            atualizarStatusFirebase(false, `❌ ${error.message}`);
-        });
-    }
+                let textoEvento = mapaEventos[evento] || evento || "DESLIGADO";
+                estadoEl.innerText = textoEvento;
+                estadoEl.style.color = '#ff4444';
+            }
+            
+            // Sinal WiFi
+            const sinalInfo = classificarSinal(data.rssi || -100);
+            const sinalEl = document.getElementById('sinalWifi');
+            sinalEl.innerHTML = sinalInfo.texto;
+            sinalEl.style.color = sinalInfo.cor;
+            
+            document.getElementById('ultimaAtualizacao').innerText = new Date().toLocaleString('pt-BR');
+            
+        } catch(error) {
+            console.error('Erro:', error);
+        }
+    }, (error) => {
+        console.error('Erro listener:', error);
+        atualizarStatusFirebase(false, `❌ ${error.message}`);
+    });
+}
 
     // ================= CARREGAR HISTÓRICO =================
     async function carregarHistorico() {
