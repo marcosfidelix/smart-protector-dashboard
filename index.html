@@ -887,15 +887,21 @@ console.log("🚀 Dashboard iniciado!");
 iniciarMonitoramentoTempoReal();
 
 
-carregarHistorico().then(() => {
-    aplicarPeriodoPredefinido(0.5);  
-});
+async function iniciarDashboard() {
+    try {
+        await carregarHistorico();
+        aplicarPeriodoPredefinido(0.5);
+        console.log("✅ Dashboard inicializado com sucesso!");
+    } catch(error) {
+        console.error("❌ Erro na inicialização:", error);
+        document.getElementById('errorMsg').innerHTML = "⚠️ Erro ao carregar dados. Recarregue a página.";
+    }
+}
+
+iniciarDashboard();
 
 setInterval(() => {
-    carregarHistorico().then(() => {
-        aplicarPeriodoPredefinido(0.5);  
-    });
-}, 30000); 
+    carregarHistorico();
 }, 30000);
 </script>
 </body>
