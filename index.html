@@ -187,9 +187,34 @@
         th { background: #0f0f1a; color: #00ff88; position: sticky; top: 0; }
         tr:hover { background: #1a2744; }
         
-        .exportar { margin-top: 20px; text-align: right; }
-        .btn-export { background: #00ff88; color: #0f0f1a; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: all 0.3s; }
-        .btn-export:hover { background: #00cc66; transform: scale(1.02); }
+        .exportar {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+        }
+        .btn-export {
+            background: #00ff88;
+            color: #0f0f1a;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        .btn-export:hover {
+            background: #00cc66;
+            transform: scale(1.02);
+        }
+        .btn-apagar {
+            background: #ffaa44;
+            color: #0f0f1a;
+        }
+        .btn-apagar:hover {
+            background: #ff8800;
+        }
         
         .watermark { position: fixed; bottom: 15px; right: 15px; opacity: 0.12; font-size: 11px; color: white; background: rgba(0,0,0,0.3); padding: 8px 12px; border-radius: 10px; pointer-events: none; z-index: 999; font-family: monospace; text-align: right; backdrop-filter: blur(2px); }
         .atualizacao { text-align: center; margin-top: 20px; font-size: 11px; color: #555; }
@@ -201,6 +226,8 @@
             .cards { grid-template-columns: repeat(3, 1fr); }
             .card .valor { font-size: 28px; }
             .firebase-status { top: 10px; right: 10px; font-size: 10px; }
+            .exportar { flex-direction: column; }
+            .exportar button { width: 100%; }
         }
     </style>
 </head>
@@ -288,7 +315,10 @@
         </table>
     </div>
     
-    <div class="exportar"><button class="btn-export" id="exportarCSV">📎 Exportar Dados (CSV)</button></div>
+    <div class="exportar">
+        <button class="btn-export btn-apagar" id="btnApagarAntigos">🗑️ Apagar Dados Antigos</button>
+        <button class="btn-export" id="exportarCSV">📎 Exportar Dados (CSV)</button>
+    </div>
     <div class="atualizacao">📡 Sincronizado via Firebase • Última atualização: <span id="ultimaAtualizacao">---</span></div>
     <div id="errorMsg" class="error-msg"></div>
 </div>
@@ -297,7 +327,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getDatabase, ref, onValue, query, limitToLast, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+    import { getDatabase, ref, onValue, query, limitToLast, get, set } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
     // ================= CONFIGURAÇÃO FIREBASE =================
     const firebaseConfig = {
@@ -389,6 +419,126 @@
         return eventos[evento.toUpperCase()] || `✅ ${evento}`;
     }
 
+    // ================= APAGAR DADOS ANTIGOS =================
+    window.apagarDadosAntigos = async function() {
+        // 1º passo: Mostra opções de período
+        const periodo = prompt(
+            "🗑️ APAGAR DADOS ANTIGOS\n\n" +
+            "Escolha o período que deseja MANTER:\n\n" +
+            "1 - Manter apenas últimas 24 horas\n" +
+            "2 - Manter apenas últimos 7 dias\n" +
+            "3 - Manter apenas últimos 30 dias\n" +
+            "4 - Personalizar (digitar horas)\n\n" +
+            "Digite o número da opção:"
+        );
+        
+        if (!periodo) return;
+        
+        let horasManter = 0;
+        let textoPeriodo = "";
+        
+        switch(periodo) {
+            case "1":
+                horasManter = 24;
+                textoPeriodo = "24 horas";
+                break;
+            case "2":
+                horasManter = 168;  // 7 * 24
+                textoPeriodo = "7 dias";
+                break;
+            case "3":
+                horasManter = 720;  // 30 * 24
+                textoPeriodo = "30 dias";
+                break;
+            case "4":
+                horasManter = parseInt(prompt("Digite quantas horas deseja MANTER:", "48"));
+                if (isNaN(horasManter) || horasManter < 1) {
+                    alert("❌ Valor inválido!");
+                    return;
+                }
+                textoPeriodo = `${horasManter} horas`;
+                break;
+            default:
+                alert("❌ Opção inválida!");
+                return;
+        }
+        
+        // Calcula a data limite
+        const dataLimite = new Date();
+        dataLimite.setHours(dataLimite.getHours() - horasManter);
+        const dataFormatada = dataLimite.toLocaleString('pt-BR');
+        
+        // 2º passo: Mostra resumo e pede confirmação
+        const confirmar = confirm(
+            "⚠️ ATENÇÃO! ⚠️\n\n" +
+            `Você está prestes a APAGAR todos os registros\n` +
+            `MAIS ANTIGOS que ${textoPeriodo}.\n\n` +
+            `📅 Data limite: ${dataFormatada}\n\n` +
+            `Registros MAIS NOVOS que isso serão MANTIDOS.\n\n` +
+            `Tem certeza que deseja continuar?`
+        );
+        
+        if (!confirmar) return;
+        
+        // 3º passo: Pede a senha PIN
+        const senha = prompt("🔒 Digite a senha PIN para confirmar a exclusão:");
+        
+        if (senha !== "2026") {
+            alert("❌ Senha incorreta! Operação cancelada.");
+            return;
+        }
+        
+        // 4º passo: Última confirmação
+        const confirmarFinal = confirm(
+            "🔥 ÚLTIMA CHANCE! 🔥\n\n" +
+            "Os dados ANTIGOS serão apagados PERMANENTEMENTE.\n" +
+            "Esta ação NÃO pode ser desfeita.\n\n" +
+            "Deseja realmente prosseguir?"
+        );
+        
+        if (!confirmarFinal) return;
+        
+        // 5º passo: Executa a exclusão
+        try {
+            const btn = document.getElementById('btnApagarAntigos');
+            const textoOriginal = btn.innerText;
+            btn.innerText = '⏳ Apagando...';
+            btn.disabled = true;
+            
+            let apagados = 0;
+            let mantidos = 0;
+            
+            for (const item of dadosCompletos) {
+                const dataRegistro = new Date(item.timestamp);
+                if (dataRegistro < dataLimite && item.id) {
+                    await ref(db, `${caminhoHistorico}/${item.id}`).remove();
+                    apagados++;
+                } else {
+                    mantidos++;
+                }
+            }
+            
+            alert(
+                `✅ EXCLUSÃO CONCLUÍDA! ✅\n\n` +
+                `🗑️ Registros apagados: ${apagados}\n` +
+                `📦 Registros mantidos: ${mantidos}\n` +
+                `📅 Dados mantidos a partir de: ${dataFormatada}`
+            );
+            
+            await carregarHistorico();
+            
+            btn.innerText = textoOriginal;
+            btn.disabled = false;
+            
+        } catch(error) {
+            console.error("Erro ao apagar:", error);
+            alert("❌ Erro ao apagar dados: " + error.message);
+            const btn = document.getElementById('btnApagarAntigos');
+            btn.innerText = '🗑️ Apagar Dados Antigos';
+            btn.disabled = false;
+        }
+    };
+
     // ================= FILTRAR POR PERÍODO =================
     function filtrarPorPeriodo() {
         if (!filtroAtivo || !dataInicioFiltro || !dataFimFiltro) {
@@ -413,15 +563,10 @@
         dataFimFiltro = agora;
         dataInicioFiltro = new Date(agora.getTime() - (horas * 3600000));
         
-        // Atualiza os campos datetime-local
         document.getElementById('dataInicio').value = formatarDateTimeLocal(dataInicioFiltro);
         document.getElementById('dataFim').value = formatarDateTimeLocal(dataFimFiltro);
         
         filtrarPorPeriodo();
-        
-        // Fecha o painel após aplicar (opcional)
-        // painelFiltro.classList.remove('aberto');
-        // btnToggle.classList.remove('aberto');
     }
 
     // ================= APLICAR PERÍODO PERSONALIZADO =================
@@ -465,7 +610,8 @@
         const minuto = String(date.getMinutes()).padStart(2, '0');
         return `${ano}-${mes}-${dia}T${hora}:${minuto}`;
     }
-  // ================= MONITORAMENTO EM TEMPO REAL =================
+    
+    // ================= MONITORAMENTO EM TEMPO REAL =================
     function iniciarMonitoramentoTempoReal() {
         const atualRef = ref(db, caminhoTempoReal);
         
@@ -514,7 +660,7 @@
     // ================= CARREGAR HISTÓRICO =================
     async function carregarHistorico() {
         const tbody = document.getElementById('tbody');
-        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;">🔄 Carregando...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;"><div class="loading"></div> 🔄 Carregando...</td></tr>';
         
         try {
             const histRef = query(ref(db, caminhoHistorico), limitToLast(5000));
@@ -526,7 +672,14 @@
                 return;
             }
 
-            dadosCompletos = Object.values(rawData);
+            dadosCompletos = [];
+            for (const [key, value] of Object.entries(rawData)) {
+                dadosCompletos.push({
+                    id: key,
+                    ...value
+                });
+            }
+            
             dadosCompletos.sort((a, b) => {
                 const dateA = new Date(a.timestamp || a.dataHora);
                 const dateB = new Date(b.timestamp || b.dataHora);
@@ -610,140 +763,133 @@
         }
     }
 
-// ================= ATUALIZAR GRÁFICO =================
-function atualizarGrafico(dados) {
-    console.log("📊 Atualizando gráfico com", dados?.length || 0, "pontos");
-    
-    if (!dados || dados.length === 0) {
+    // ================= ATUALIZAR GRÁFICO =================
+    function atualizarGrafico(dados) {
+        console.log("📊 Atualizando gráfico com", dados?.length || 0, "pontos");
+        
+        if (!dados || dados.length === 0) {
+            if (grafico) {
+                grafico.destroy();
+                grafico = null;
+            }
+            return;
+        }
+        
+        let dadosFiltrados = dados.filter(item => {
+            let tensao = item.tensao;
+            if (typeof tensao === 'string') tensao = parseFloat(tensao);
+            return tensao > 80 && tensao < 300;
+        });
+        
+        console.log(`📈 Removidos ${dados.length - dadosFiltrados.length} pontos inválidos`);
+        
+        if (dadosFiltrados.length === 0) {
+            console.log("⚠️ Nenhum dado válido para o gráfico");
+            if (grafico) grafico.destroy();
+            return;
+        }
+        
+        const dadosGrafico = dadosFiltrados.slice(-100);
+        
+        const labels = dadosGrafico.map(d => {
+            let time = d.timestamp || '';
+            if (typeof time === 'string') {
+                const match = time.match(/(\d{2}):(\d{2}):(\d{2})/);
+                if (match) return `${match[1]}:${match[2]}`;
+                const match2 = time.match(/(\d{2}):(\d{2})/);
+                if (match2) return match2[0];
+            }
+            return '--:--';
+        });
+        
+        const tensoes = dadosGrafico.map(d => {
+            let v = d.tensao;
+            if (typeof v === 'string') v = parseFloat(v);
+            return v || 0;
+        });
+        
+        const valoresValidos = tensoes.filter(v => v > 80 && v < 300);
+        if (valoresValidos.length === 0) return;
+        
+        const minTensao = Math.min(...valoresValidos);
+        const maxTensao = Math.max(...valoresValidos);
+        const margem = 10;
+        
+        let yMin = Math.max(0, minTensao - margem);
+        let yMax = maxTensao + margem;
+        
+        if (yMax - yMin < 20) {
+            const center = (yMin + yMax) / 2;
+            yMin = center - 10;
+            yMax = center + 10;
+        }
+        
+        console.log(`📈 Escala: ${yMin.toFixed(0)}V - ${yMax.toFixed(0)}V`);
+        
         if (grafico) {
             grafico.destroy();
             grafico = null;
         }
-        return;
-    }
-    
-    // 🔥 FILTRA OS DADOS: remove pontos com tensão = 0 ou inválida
-    let dadosFiltrados = dados.filter(item => {
-        let tensao = item.tensao;
-        if (typeof tensao === 'string') tensao = parseFloat(tensao);
-        // Só aceita tensões entre 80V e 300V (valores realistas)
-        return tensao > 80 && tensao < 300;
-    });
-    
-    console.log(`📈 Removidos ${dados.length - dadosFiltrados.length} pontos inválidos (zerados ou fora do range)`);
-    
-    if (dadosFiltrados.length === 0) {
-        console.log("⚠️ Nenhum dado válido para o gráfico");
-        if (grafico) grafico.destroy();
-        return;
-    }
-    
-    // Pega os últimos 100 pontos do gráfico
-    const dadosGrafico = dadosFiltrados.slice(-100);
-    
-    // Extrai labels (horários)
-    const labels = dadosGrafico.map(d => {
-        let time = d.timestamp || '';
-        if (typeof time === 'string') {
-            const match = time.match(/(\d{2}):(\d{2}):(\d{2})/);
-            if (match) return `${match[1]}:${match[2]}`;
-            const match2 = time.match(/(\d{2}):(\d{2})/);
-            if (match2) return match2[0];
-        }
-        return '--:--';
-    });
-    
-    // Extrai valores de tensão
-    const tensoes = dadosGrafico.map(d => {
-        let v = d.tensao;
-        if (typeof v === 'string') v = parseFloat(v);
-        return v || 0;
-    });
-    
-    // 🔥 CALCULA LIMITES DINÂMICOS (ignorando zeros)
-    const valoresValidos = tensoes.filter(v => v > 80 && v < 300);
-    if (valoresValidos.length === 0) return;
-    
-    const minTensao = Math.min(...valoresValidos);
-    const maxTensao = Math.max(...valoresValidos);
-    const margem = 10;
-    
-    let yMin = Math.max(0, minTensao - margem);
-    let yMax = maxTensao + margem;
-    
-    // Garante que a escala seja pelo menos 20V de amplitude
-    if (yMax - yMin < 20) {
-        const center = (yMin + yMax) / 2;
-        yMin = center - 10;
-        yMax = center + 10;
-    }
-    
-    console.log(`📈 Escala: ${yMin.toFixed(0)}V - ${yMax.toFixed(0)}V (dados: ${minTensao.toFixed(0)}-${maxTensao.toFixed(0)}V)`);
-    
-    // Destrói gráfico anterior
-    if (grafico) {
-        grafico.destroy();
-        grafico = null;
-    }
-    
-    const ctx = document.getElementById('grafico').getContext('2d');
-    
-    grafico = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Tensão (V)',
-                data: tensoes,
-                borderColor: '#00ff88',
-                backgroundColor: 'rgba(0,255,136,0.1)',
-                borderWidth: 2,
-                fill: true,
-                tension: 0.2,
-                pointRadius: 3,
-                pointBackgroundColor: '#00ff88',
-                pointBorderColor: '#fff',
-                pointBorderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-                legend: { labels: { color: '#fff' } },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            return `⚡ Tensão: ${context.raw.toFixed(1)} V`;
+        
+        const ctx = document.getElementById('grafico').getContext('2d');
+        
+        grafico = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Tensão (V)',
+                    data: tensoes,
+                    borderColor: '#00ff88',
+                    backgroundColor: 'rgba(0,255,136,0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.2,
+                    pointRadius: 3,
+                    pointBackgroundColor: '#00ff88',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { labels: { color: '#fff' } },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `⚡ Tensão: ${context.raw.toFixed(1)} V`;
+                            }
                         }
                     }
-                }
-            },
-            scales: {
-                y: {
-                    min: yMin,
-                    max: yMax,
-                    title: { display: true, text: 'Tensão (V)', color: '#aaa' },
-                    ticks: { 
-                        color: '#aaa',
-                        callback: function(value) {
-                            return value.toFixed(0) + 'V';
-                        }
-                    },
-                    grid: { color: 'rgba(255,255,255,0.1)' }
                 },
-                x: {
-                    title: { display: true, text: 'Horário', color: '#aaa' },
-                    ticks: { color: '#aaa', maxRotation: 45, minRotation: 45, maxTicksLimit: 10 },
-                    grid: { color: 'rgba(255,255,255,0.1)' }
+                scales: {
+                    y: {
+                        min: yMin,
+                        max: yMax,
+                        title: { display: true, text: 'Tensão (V)', color: '#aaa' },
+                        ticks: { 
+                            color: '#aaa',
+                            callback: function(value) {
+                                return value.toFixed(0) + 'V';
+                            }
+                        },
+                        grid: { color: 'rgba(255,255,255,0.1)' }
+                    },
+                    x: {
+                        title: { display: true, text: 'Horário', color: '#aaa' },
+                        ticks: { color: '#aaa', maxRotation: 45, minRotation: 45, maxTicksLimit: 10 },
+                        grid: { color: 'rgba(255,255,255,0.1)' }
+                    }
                 }
             }
-        }
-    });
+        });
+        
+        console.log("✅ Gráfico atualizado!");
+    }
     
-    console.log("✅ Gráfico atualizado!");
-}
-        // ================= EXPORTAR CSV =================
+    // ================= EXPORTAR CSV =================
     function exportarCSV() {
         if (dadosFiltrados?.length === 0) {
             alert("📭 Sem dados para exportar!");
@@ -771,6 +917,7 @@ function atualizarGrafico(dados) {
 
     // ================= EVENTOS =================
     document.getElementById('exportarCSV').addEventListener('click', exportarCSV);
+    document.getElementById('btnApagarAntigos').addEventListener('click', () => window.apagarDadosAntigos());
 
     // ================= INICIALIZAÇÃO =================
     console.log("🚀 Dashboard iniciado!");
@@ -778,7 +925,6 @@ function atualizarGrafico(dados) {
     iniciarMonitoramentoTempoReal();
     carregarHistorico();
     
-    // Auto-refresh a cada 30 segundos
     setInterval(() => {
         carregarHistorico();
     }, 30000);
