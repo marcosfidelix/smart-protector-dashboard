@@ -255,10 +255,10 @@
         <div class="filtros-row">
             <label>⚡ Período Rápido:</label>
             <div class="periodo-predefinido">
-                <button onclick="aplicarPeriodoPredefinido(1)">🕐 Última hora</button>
-                <button onclick="aplicarPeriodoPredefinido(6)">🕕 Últimas 6 horas</button>
-                <button onclick="aplicarPeriodoPredefinido(24)">📆 Últimas 24 horas</button>
-                <button onclick="aplicarPeriodoPredefinido(168)">📅 Últimos 7 dias</button>
+                 <button onclick="aplicarPeriodoPredefinido(0.5)">🕐 Últimos 30 min</button>
+                 <button onclick="aplicarPeriodoPredefinido(1)">🕐 Última hora</button>
+                 <button onclick="aplicarPeriodoPredefinido(6)">🕕 Últimas 6 horas</button>
+                 <button onclick="aplicarPeriodoPredefinido(24)">📆 Últimas 24 horas</button>
             </div>
         </div>
         
@@ -881,10 +881,19 @@ function iniciarMonitoramentoTempoReal() {
     document.getElementById('exportarCSV').addEventListener('click', exportarCSV);
     document.getElementById('btnApagarAntigos').addEventListener('click', () => window.apagarDadosAntigos());
 
-    // ================= INICIALIZAÇÃO =================
-    iniciarMonitoramentoTempoReal();
-    carregarHistorico();
-    setInterval(() => carregarHistorico(), 30000);
+// ================= INICIALIZAÇÃO =================
+console.log("🚀 Dashboard iniciado!");
+
+iniciarMonitoramentoTempoReal();
+
+
+carregarHistorico().then(() => {
+    aplicarPeriodoPredefinido(0.5);  
+});
+
+setInterval(() => {
+    aplicarPeriodoPredefinido(0.5);  
+}, 30000);
 </script>
 </body>
 </html>
