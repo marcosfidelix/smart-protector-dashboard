@@ -892,7 +892,10 @@ carregarHistorico().then(() => {
 });
 
 setInterval(() => {
-    aplicarPeriodoPredefinido(0.5);  
+    carregarHistorico().then(() => {
+        aplicarPeriodoPredefinido(0.5);  
+    });
+}, 30000); 
 }, 30000);
 </script>
 </body>
