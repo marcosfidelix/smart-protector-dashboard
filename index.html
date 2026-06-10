@@ -749,7 +749,7 @@ function iniciarMonitoramentoTempoReal() {
         }
     }
 
-    // ================= ATUALIZAR GRÁFICO (com filtro inteligente) =================
+    // ================= ATUALIZAR GRÁFICO  =================
     function atualizarGrafico(dados) {
         // Aplica filtro inteligente para o gráfico
         let dadosValidos = filtrarDadosValidos(dados);
@@ -759,7 +759,7 @@ function iniciarMonitoramentoTempoReal() {
             return;
         }
         
-        const dadosGrafico = dadosValidos.slice(-100);
+        const dadosGrafico = dadosValidos;
         
         const labels = dadosGrafico.map(d => {
             let time = d.timestamp || '';
