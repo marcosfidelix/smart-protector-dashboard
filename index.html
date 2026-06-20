@@ -29,7 +29,6 @@
         @keyframes pulse { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
         @keyframes spin  { to { transform: rotate(360deg); } }
 
-        /* Banner offline */
         .offline-banner {
             display: none;
             background: #7a1a1a;
@@ -100,6 +99,10 @@
             cursor: pointer; font-weight: 500; transition: all 0.2s;
         }
         .btn-metrica:hover { opacity: 0.85; }
+        .btn-metrica.ativo-tensao { border-color: #378ADD; background: #0d2a44; color: #7bbfee; }
+        .btn-metrica.ativo-corrente { border-color: #1D9E75; background: #0a2a1e; color: #5dcaa5; }
+        .btn-metrica.ativo-frequencia { border-color: #EF9F27; background: #2a1e05; color: #fac775; }
+        .btn-metrica.ativo-potencia { border-color: #D85A30; background: #2a0f05; color: #f09975; }
         canvas { max-height: 400px; width: 100%; }
 
         .stats { display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 20px; }
@@ -196,10 +199,10 @@
     <div class="grafico-container">
         <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; align-items:center;">
             <span style="font-size:13px; color:#aaa;">Mostrar:</span>
-            <button class="btn-metrica" id="btn-tensao"     onclick="toggleMetrica('tensao')"     style="border-color:#378ADD; background:#0d2a44; color:#7bbfee;">⚡ Tensão (V)</button>
-            <button class="btn-metrica" id="btn-corrente"   onclick="toggleMetrica('corrente')"   >🔌 Corrente (A)</button>
-            <button class="btn-metrica" id="btn-frequencia" onclick="toggleMetrica('frequencia')" >🔄 Frequência (Hz)</button>
-            <button class="btn-metrica" id="btn-potencia"   onclick="toggleMetrica('potencia')"   >🔋 Potência (W)</button>
+            <button class="btn-metrica ativo-tensao" id="btn-tensao" onclick="toggleMetrica('tensao')">⚡ Tensão (V)</button>
+            <button class="btn-metrica" id="btn-corrente" onclick="toggleMetrica('corrente')">🔌 Corrente (A)</button>
+            <button class="btn-metrica" id="btn-frequencia" onclick="toggleMetrica('frequencia')">🔄 Frequência (Hz)</button>
+            <button class="btn-metrica" id="btn-potencia" onclick="toggleMetrica('potencia')">🔋 Potência (W)</button>
         </div>
         <div id="legendaGrafico" style="display:flex; flex-wrap:wrap; gap:14px; margin-bottom:12px; font-size:12px; color:#aaa;"></div>
         <canvas id="grafico"></canvas>
@@ -263,22 +266,23 @@
     };
 
     const app = initializeApp(firebaseConfig);
-    const db  = getDatabase(app);
+    const db = getDatabase(app);
 
     const caminhoTempoReal = "atual";
     const caminhoHistorico = "historico";
-    const LIMITE_OFFLINE_S = 30; // segundos sem dado = offline
-    const MAX_PONTOS_GRAFICO = 100; // máximo de pontos no gráfico em tempo real
+    const LIMITE_OFFLINE_S = 30;
+    const MAX_PONTOS_GRAFICO = 120;
 
-    let dadosCompletos   = [];
-    let dadosFiltrados   = [];
-    let grafico          = null;
-    let filtroAtivo      = false;
+    let dadosCompletos = [];
+    let dadosFiltrados = [];
+    let grafico = null;
+    let filtroAtivo = false;
     let dataInicioFiltro = null;
-    let dataFimFiltro    = null;
-    let ultimoTimestamp  = null;
+    let dataFimFiltro = null;
+    let ultimoTimestamp = null;
     let ultimoRecebidoMs = null;
-    let timerOffline     = null;
+    let timerOffline = null;
+    let pontosAcumulados = 0;
 
     // ===== TOGGLE FILTRO =====
     document.getElementById('btnToggleFiltro').addEventListener('click', () => {
@@ -306,7 +310,7 @@
     }
 
     function atualizarStatusFirebase(conectado, msg) {
-        const led  = document.getElementById('statusLed');
+        const led = document.getElementById('statusLed');
         const text = document.getElementById('statusText');
         if (conectado) {
             led.classList.add('connected');
@@ -320,30 +324,30 @@
 
     function classificarSinal(rssi) {
         if (rssi >= -50) return { texto: "📶 Excelente", cor: "#00ff88" };
-        if (rssi >= -60) return { texto: "📶 Bom",       cor: "#88ff88" };
-        if (rssi >= -70) return { texto: "📶 Regular",   cor: "#ffaa44" };
-        if (rssi >= -80) return { texto: "📶 Ruim",      cor: "#ff6644" };
-        return              { texto: "📶 Péssimo",  cor: "#ff4444" };
+        if (rssi >= -60) return { texto: "📶 Bom", cor: "#88ff88" };
+        if (rssi >= -70) return { texto: "📶 Regular", cor: "#ffaa44" };
+        if (rssi >= -80) return { texto: "📶 Ruim", cor: "#ff6644" };
+        return { texto: "📶 Péssimo", cor: "#ff4444" };
     }
 
     function classificarFP(fp) {
         if (fp >= 0.95) return { cor: "#00ff88" };
         if (fp >= 0.85) return { cor: "#ffaa44" };
         if (fp >= 0.70) return { cor: "#ffaa44" };
-        return              { cor: "#ff4444"  };
+        return { cor: "#ff4444" };
     }
 
     function formatarEvento(evento) {
         const m = {
-            "SOBRETENSAO":      "🔴 SOBRETENSÃO",
-            "SUBTENSAO":        "🟡 SUBTENSÃO",
-            "SOBRECORRENTE":    "🔥 SOBRECORRENTE",
-            "FREQUENCIA FORA":  "🔄 FREQ. FORA",
-            "QUEDA ENERGIA":    "⚡ QUEDA ENERGIA",
-            "FALHA SENSOR":     "💀 FALHA SENSOR",
-            "SENSOR OFFLINE":   "📡 SENSOR OFF",
+            "SOBRETENSAO": "🔴 SOBRETENSÃO",
+            "SUBTENSAO": "🟡 SUBTENSÃO",
+            "SOBRECORRENTE": "🔥 SOBRECORRENTE",
+            "FREQUENCIA FORA": "🔄 FREQ. FORA",
+            "QUEDA ENERGIA": "⚡ QUEDA ENERGIA",
+            "FALHA SENSOR": "💀 FALHA SENSOR",
+            "SENSOR OFFLINE": "📡 SENSOR OFF",
             "DESLIGADO MANUAL": "👆 DESLIGADO MANUAL",
-            "NORMAL":           "✅ NORMAL"
+            "NORMAL": "✅ NORMAL"
         };
         return m[evento] || `✅ ${evento}`;
     }
@@ -354,7 +358,7 @@
         timerOffline = setInterval(() => {
             if (!ultimoRecebidoMs) return;
             const segundos = Math.floor((Date.now() - ultimoRecebidoMs) / 1000);
-            const banner   = document.getElementById('offlineBanner');
+            const banner = document.getElementById('offlineBanner');
 
             if (segundos > LIMITE_OFFLINE_S) {
                 document.getElementById('tempoOffline').innerText = segundos;
@@ -366,10 +370,10 @@
                     el.classList.add('valor-offline');
                 });
                 const estadoEl = document.getElementById('estado');
-                estadoEl.innerText   = 'OFFLINE';
+                estadoEl.innerText = 'OFFLINE';
                 estadoEl.style.color = '#555';
                 const sinalEl = document.getElementById('sinalWifi');
-                sinalEl.innerHTML   = '📵 Sem sinal';
+                sinalEl.innerHTML = '📵 Sem sinal';
                 sinalEl.style.color = '#555';
             }
         }, 5000);
@@ -385,18 +389,12 @@
 
     // ===== GRÁFICO MULTI-MÉTRICA =====
     const configsMetrica = {
-        tensao:     { label: 'Tensão (V)',       color: '#378ADD', dash: [],     yID: 'yV'  },
-        corrente:   { label: 'Corrente (A)',     color: '#1D9E75', dash: [6,3],  yID: 'yA'  },
-        frequencia: { label: 'Frequência (Hz)', color: '#EF9F27', dash: [2,4],  yID: 'yHz' },
-        potencia:   { label: 'Potência (W)',     color: '#D85A30', dash: [10,4], yID: 'yW'  },
+        tensao: { label: 'Tensão (V)', color: '#378ADD', dash: [], yID: 'yV' },
+        corrente: { label: 'Corrente (A)', color: '#1D9E75', dash: [6,3], yID: 'yA' },
+        frequencia: { label: 'Frequência (Hz)', color: '#EF9F27', dash: [2,4], yID: 'yHz' },
+        potencia: { label: 'Potência (W)', color: '#D85A30', dash: [10,4], yID: 'yW' },
     };
     const metricasAtivas = { tensao: true, corrente: false, frequencia: false, potencia: false };
-    const btnStyleAtivo  = {
-        tensao:     { border:'#378ADD', bg:'#0d2a44', color:'#7bbfee' },
-        corrente:   { border:'#1D9E75', bg:'#0a2a1e', color:'#5dcaa5' },
-        frequencia: { border:'#EF9F27', bg:'#2a1e05', color:'#fac775' },
-        potencia:   { border:'#D85A30', bg:'#2a0f05', color:'#f09975' },
-    };
 
     function atualizarLegendaGrafico() {
         const div = document.getElementById('legendaGrafico');
@@ -412,18 +410,18 @@
     window.toggleMetrica = function(key) {
         metricasAtivas[key] = !metricasAtivas[key];
         const btn = document.getElementById('btn-' + key);
-        const st  = btnStyleAtivo[key];
+        const prefix = 'ativo-';
+        // Remove todas as classes ativo
+        ['tensao','corrente','frequencia','potencia'].forEach(k => btn.classList.remove(prefix + k));
         if (metricasAtivas[key]) {
-            btn.style.border     = '1.5px solid ' + st.border;
-            btn.style.background = st.bg;
-            btn.style.color      = st.color;
+            btn.classList.add(prefix + key);
         } else {
-            btn.style.border     = '1.5px solid #444';
+            btn.style.border = '1.5px solid #444';
             btn.style.background = 'transparent';
-            btn.style.color      = '#aaa';
+            btn.style.color = '#aaa';
         }
         if (grafico) {
-            grafico.data.datasets  = buildDatasets(dadosFiltrados);
+            grafico.data.datasets = buildDatasets(dadosFiltrados);
             grafico.options.scales = buildScales();
             grafico.update();
         }
@@ -433,55 +431,54 @@
     function buildDatasets(dados) {
         const dv = filtrarDadosValidos(dados);
         const campos = {
-            tensao:     d => { let v = d.tensao; if (typeof v === 'string') v = parseFloat(v); return v || 0; },
-            corrente:   d => d.corrente   || 0,
+            tensao: d => { let v = d.tensao; if (typeof v === 'string') v = parseFloat(v); return v || 0; },
+            corrente: d => d.corrente || 0,
             frequencia: d => d.frequencia || 0,
-            potencia:   d => d.potencia   || 0,
+            potencia: d => d.potencia || 0,
         };
         return Object.entries(configsMetrica)
             .filter(([k]) => metricasAtivas[k])
             .map(([k, cfg]) => ({
-                label:           cfg.label,
-                data:            dv.map(campos[k]),
-                borderColor:     cfg.color,
+                label: cfg.label,
+                data: dv.map(campos[k]),
+                borderColor: cfg.color,
                 backgroundColor: cfg.color + '18',
-                borderWidth:     2,
-                fill:            false,
-                tension:         0.3,
-                pointRadius:     2,
-                borderDash:      cfg.dash,
-                yAxisID:         cfg.yID,
+                borderWidth: 2,
+                fill: false,
+                tension: 0.3,
+                pointRadius: 2,
+                borderDash: cfg.dash,
+                yAxisID: cfg.yID,
             }));
     }
 
     function buildScales() {
         const scales = {
-            x: { ticks: { color:'#aaa', maxTicksLimit:10, maxRotation:45 }, grid: { color:'rgba(255,255,255,0.05)' } }
+            x: { ticks: { color: '#aaa', maxTicksLimit: 10, maxRotation: 45 }, grid: { color: 'rgba(255,255,255,0.05)' } }
         };
-        const yRanges    = { yV:[195,245], yA:[0,30], yHz:[57,63], yW:[0,6000] };
-        const yPos       = { yV:'left', yA:'right', yHz:'left', yW:'right' };
-        const yLabels    = { yV:'Tensão (V)', yA:'Corrente (A)', yHz:'Freq (Hz)', yW:'Potência (W)' };
-        const yColors    = { yV:'#378ADD', yA:'#1D9E75', yHz:'#EF9F27', yW:'#D85A30' };
-        const metricaToY = { tensao:'yV', corrente:'yA', frequencia:'yHz', potencia:'yW' };
-        const activeYIDs = Object.entries(metricasAtivas).filter(([,v]) => v).map(([k]) => metricaToY[k]);
+        const yRanges = { yV: [195, 245], yA: [0, 30], yHz: [57, 63], yW: [0, 6000] };
+        const yPos = { yV: 'left', yA: 'right', yHz: 'left', yW: 'right' };
+        const yLabels = { yV: 'Tensão (V)', yA: 'Corrente (A)', yHz: 'Freq (Hz)', yW: 'Potência (W)' };
+        const yColors = { yV: '#378ADD', yA: '#1D9E75', yHz: '#EF9F27', yW: '#D85A30' };
+        const metricaToY = { tensao: 'yV', corrente: 'yA', frequencia: 'yHz', potencia: 'yW' };
+        const activeYIDs = Object.entries(metricasAtivas).filter(([, v]) => v).map(([k]) => metricaToY[k]);
 
         Object.entries(yRanges).forEach(([id, range]) => {
             const isActive = activeYIDs.includes(id);
             scales[id] = {
-                type:     'linear',
-                display:  isActive,
+                type: 'linear',
+                display: isActive,
                 position: yPos[id],
-                min:      range[0],
-                max:      range[1],
-                title:    { display:true, text:yLabels[id], color:yColors[id], font:{size:11} },
-                ticks:    { color:yColors[id], font:{size:10}, maxTicksLimit:6 },
-                grid:     { drawOnChartArea: activeYIDs[0] === id, color:'rgba(255,255,255,0.05)' },
+                min: range[0],
+                max: range[1],
+                title: { display: true, text: yLabels[id], color: yColors[id], font: { size: 11 } },
+                ticks: { color: yColors[id], font: { size: 10 }, maxTicksLimit: 6 },
+                grid: { drawOnChartArea: activeYIDs[0] === id, color: 'rgba(255,255,255,0.05)' },
             };
         });
         return scales;
     }
 
-    // Cria o gráfico do zero com os dados do histórico
     function atualizarGrafico(dados) {
         const dv = filtrarDadosValidos(dados);
         if (dv.length === 0) { if (grafico) { grafico.destroy(); grafico = null; } return; }
@@ -498,68 +495,66 @@
             data: { labels, datasets: buildDatasets(dados) },
             options: {
                 responsive: true, maintainAspectRatio: true,
-                animation:  { duration: 300 },
-                plugins:    { legend: { display: false } },
-                scales:     buildScales(),
-                interaction:{ mode: 'index', intersect: false },
+                animation: { duration: 300 },
+                plugins: { legend: { display: false } },
+                scales: buildScales(),
+                interaction: { mode: 'index', intersect: false },
             }
         });
         atualizarLegendaGrafico();
     }
 
-    // Adiciona UM novo ponto ao gráfico sem recriá-lo (tempo real)
+    // ===== ADICIONAR PONTO EM TEMPO REAL =====
     function adicionarPontoGrafico(novoDado) {
-        if (!grafico) return;
+        if (!grafico || filtroAtivo) return;
 
-        const ts  = novoDado.timestamp || '';
-        const m   = ts.match(/(\d{2}):(\d{2}):\d{2}/);
-        const label = m ? m[1] + ':' + m[2] : new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+        const ts = novoDado.timestamp || '';
+        const m = ts.match(/(\d{2}):(\d{2}):\d{2}/);
+        const label = m ? m[1] + ':' + m[2] : new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-        const valores = {
-            yV:  { tensao:     novoDado.tensao     || 0 },
-            yA:  { corrente:   novoDado.corrente   || 0 },
-            yHz: { frequencia: novoDado.frequencia || 0 },
-            yW:  { potencia:   novoDado.potencia   || 0 },
-        };
-        const campoDoY = { yV:'tensao', yA:'corrente', yHz:'frequencia', yW:'potencia' };
-
-        // Adiciona label
         grafico.data.labels.push(label);
 
-        // Adiciona valor em cada dataset ativo
+        const campoDoY = { yV: 'tensao', yA: 'corrente', yHz: 'frequencia', yW: 'potencia' };
         grafico.data.datasets.forEach(ds => {
             const campo = campoDoY[ds.yAxisID];
-            ds.data.push(novoDado[campo] || 0);
+            if (campo) {
+                ds.data.push(novoDado[campo] || 0);
+            }
         });
 
-        // Limita quantidade de pontos no gráfico
         if (grafico.data.labels.length > MAX_PONTOS_GRAFICO) {
             grafico.data.labels.shift();
             grafico.data.datasets.forEach(ds => ds.data.shift());
         }
 
-        grafico.update('none'); // 'none' = sem animação para não travar
+        grafico.update('none');
+        pontosAcumulados++;
+        if (pontosAcumulados % 30 === 0) {
+            console.log(`📊 ${pontosAcumulados} pontos adicionados em tempo real`);
+        }
     }
 
     // ===== TEMPO REAL =====
     function iniciarMonitoramentoTempoReal() {
         const mapaEventos = {
-            "SOBRETENSAO":      "SOBRETENSÃO",
-            "SUBTENSAO":        "SUBTENSÃO",
-            "SOBRECORRENTE":    "SOBRECORRENTE",
-            "FREQUENCIA FORA":  "FREQ. FORA",
-            "QUEDA ENERGIA":    "QUEDA ENERGIA",
-            "FALHA SENSOR":     "FALHA SENSOR",
-            "SENSOR OFFLINE":   "SENSOR OFF",
+            "SOBRETENSAO": "SOBRETENSÃO",
+            "SUBTENSAO": "SUBTENSÃO",
+            "SOBRECORRENTE": "SOBRECORRENTE",
+            "FREQUENCIA FORA": "FREQ. FORA",
+            "QUEDA ENERGIA": "QUEDA ENERGIA",
+            "FALHA SENSOR": "FALHA SENSOR",
+            "SENSOR OFFLINE": "SENSOR OFF",
             "DESLIGADO MANUAL": "DESLIGADO MANUAL"
         };
 
         onValue(ref(db, caminhoTempoReal), (snapshot) => {
             try {
                 const data = snapshot.val();
-                if (!data) { atualizarStatusFirebase(false, "⚠️ Nenhum dado recebido"); return; }
+                if (!data) {
+                    atualizarStatusFirebase(false, "⚠️ Nenhum dado recebido");
+                    return;
+                }
 
-                // Ignora se for o mesmo timestamp (Firebase às vezes re-dispara)
                 if (data.timestamp && data.timestamp === ultimoTimestamp) return;
                 ultimoTimestamp = data.timestamp || null;
 
@@ -567,38 +562,35 @@
                 registrarDadoRecebido(horaFormatada);
                 atualizarStatusFirebase(true, "✅ Firebase Online");
 
-                // Atualiza cards
-                document.getElementById('tensao').innerText     = (data.tensao     || 0).toFixed(1);
-                document.getElementById('frequencia').innerText = (data.frequencia  || 0).toFixed(1);
-                document.getElementById('corrente').innerText   = (data.corrente   || 0).toFixed(2);
-                document.getElementById('potencia').innerText   = (data.potencia   || 0).toFixed(0);
+                document.getElementById('tensao').innerText = (data.tensao || 0).toFixed(1);
+                document.getElementById('frequencia').innerText = (data.frequencia || 0).toFixed(1);
+                document.getElementById('corrente').innerText = (data.corrente || 0).toFixed(2);
+                document.getElementById('potencia').innerText = (data.potencia || 0).toFixed(0);
 
                 const fpEl = document.getElementById('fp');
-                fpEl.innerText   = (data.fp || 0).toFixed(3);
+                fpEl.innerText = (data.fp || 0).toFixed(3);
                 fpEl.style.color = classificarFP(data.fp || 0).cor;
 
                 const estadoEl = document.getElementById('estado');
                 if ((data.estado || '') === 'LIGADO') {
-                    estadoEl.innerText   = 'LIGADO';
+                    estadoEl.innerText = 'LIGADO';
                     estadoEl.style.color = '#00ff88';
                 } else {
-                    estadoEl.innerText   = mapaEventos[data.evento] || data.evento || "DESLIGADO";
+                    estadoEl.innerText = mapaEventos[data.evento] || data.evento || "DESLIGADO";
                     estadoEl.style.color = '#ff4444';
                 }
 
                 const sinalInfo = classificarSinal(data.rssi || -100);
-                const sinalEl   = document.getElementById('sinalWifi');
-                sinalEl.innerHTML   = sinalInfo.texto;
+                const sinalEl = document.getElementById('sinalWifi');
+                sinalEl.innerHTML = sinalInfo.texto;
                 sinalEl.style.color = sinalInfo.cor;
 
                 document.getElementById('ultimaAtualizacao').innerText = new Date().toLocaleString('pt-BR');
 
-                // Adiciona ponto no gráfico em tempo real (só se não há filtro ativo)
-                if (!filtroAtivo) {
-                    adicionarPontoGrafico(data);
-                }
+                // Adiciona ponto no gráfico em tempo real
+                adicionarPontoGrafico(data);
 
-            } catch(err) { console.error('Erro tempo real:', err); }
+            } catch (err) { console.error('Erro tempo real:', err); }
         }, (err) => {
             atualizarStatusFirebase(false, `❌ ${err.message}`);
         });
@@ -609,7 +601,7 @@
         const tbody = document.getElementById('tbody');
         tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;"><div class="loading"></div> 🔄 Carregando...</td></tr>`;
         try {
-            const snap    = await get(query(ref(db, caminhoHistorico), limitToLast(5000)));
+            const snap = await get(query(ref(db, caminhoHistorico), limitToLast(5000)));
             const rawData = snap.val();
             if (!rawData) {
                 tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;">📭 Nenhum registro no histórico</td></tr>';
@@ -622,7 +614,7 @@
             atualizarEstatisticas(dadosFiltrados);
             atualizarGrafico(dadosFiltrados);
             atualizarStatusFirebase(true, `✅ ${dadosCompletos.length} registros`);
-        } catch(err) {
+        } catch (err) {
             console.error('Erro histórico:', err);
             tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;">❌ Erro: ${err.message}</td></tr>`;
         }
@@ -644,16 +636,16 @@
     }
 
     function formatarDateTimeLocal(date) {
-        return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}T${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}T${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
     }
 
     window.aplicarPeriodoPredefinido = function(horas) {
-        filtroAtivo      = true;
-        const agora      = new Date();
-        dataFimFiltro    = agora;
+        filtroAtivo = true;
+        const agora = new Date();
+        dataFimFiltro = agora;
         dataInicioFiltro = new Date(agora.getTime() - horas * 3600000);
         document.getElementById('dataInicio').value = formatarDateTimeLocal(dataInicioFiltro);
-        document.getElementById('dataFim').value    = formatarDateTimeLocal(dataFimFiltro);
+        document.getElementById('dataFim').value = formatarDateTimeLocal(dataFimFiltro);
         filtrarPorPeriodo();
     };
 
@@ -661,9 +653,9 @@
         const i = document.getElementById('dataInicio').value;
         const f = document.getElementById('dataFim').value;
         if (!i || !f) { alert("⚠️ Selecione início e fim!"); return; }
-        filtroAtivo      = true;
+        filtroAtivo = true;
         dataInicioFiltro = new Date(i);
-        dataFimFiltro    = new Date(f);
+        dataFimFiltro = new Date(f);
         if (dataInicioFiltro > dataFimFiltro) { alert("⚠️ Data início maior que fim!"); return; }
         filtrarPorPeriodo();
     };
@@ -672,13 +664,13 @@
         filtroAtivo = false;
         dataInicioFiltro = dataFimFiltro = null;
         document.getElementById('dataInicio').value = '';
-        document.getElementById('dataFim').value    = '';
+        document.getElementById('dataFim').value = '';
         filtrarPorPeriodo();
     };
 
     // ===== TABELA =====
     function atualizarTabela(dados) {
-        const tbody    = document.getElementById('tbody');
+        const tbody = document.getElementById('tbody');
         tbody.innerHTML = '';
         const dv = filtrarDadosValidos(dados);
         if (dv.length === 0) {
@@ -688,15 +680,15 @@
         const reversed = [...dv].reverse().slice(0, 500);
         for (const item of reversed) {
             const row = tbody.insertRow();
-            row.insertCell(0).innerText  = formatarTimestamp(item.timestamp || item.dataHora);
-            row.insertCell(1).innerText  = (item.tensao    || 0).toFixed(1);
-            row.insertCell(2).innerText  = (item.frequencia || 0).toFixed(1);
-            row.insertCell(3).innerText  = (item.corrente  || 0).toFixed(2);
-            row.insertCell(4).innerText  = (item.potencia  || 0).toFixed(0);
-            row.insertCell(5).innerText  = (item.fp        || 0).toFixed(3);
-            row.insertCell(6).innerText  = item.rssi  || '---';
-            row.insertCell(7).innerText  = item.estado || '---';
-            row.insertCell(8).innerHTML  = formatarEvento(item.evento || 'NORMAL');
+            row.insertCell(0).innerText = formatarTimestamp(item.timestamp || item.dataHora);
+            row.insertCell(1).innerText = (item.tensao || 0).toFixed(1);
+            row.insertCell(2).innerText = (item.frequencia || 0).toFixed(1);
+            row.insertCell(3).innerText = (item.corrente || 0).toFixed(2);
+            row.insertCell(4).innerText = (item.potencia || 0).toFixed(0);
+            row.insertCell(5).innerText = (item.fp || 0).toFixed(3);
+            row.insertCell(6).innerText = item.rssi || '---';
+            row.insertCell(7).innerText = item.estado || '---';
+            row.insertCell(8).innerHTML = formatarEvento(item.evento || 'NORMAL');
         }
         document.getElementById('totalRegistros').innerText = dv.length;
     }
@@ -705,25 +697,32 @@
     function atualizarEstatisticas(dados) {
         const dv = filtrarDadosValidos(dados);
         if (dv.length === 0) {
-            ['mediaTensao','maxTensao','minTensao','mediaFreq','mediaFp'].forEach(id =>
+            ['mediaTensao', 'maxTensao', 'minTensao', 'mediaFreq', 'mediaFp'].forEach(id =>
                 document.getElementById(id).innerText = '---');
             return;
         }
-        let somaTensao = 0, somaFreq = 0, somaFp = 0;
-        let minT = Infinity, maxT = -Infinity, count = 0;
+        let somaTensao = 0,
+            somaFreq = 0,
+            somaFp = 0;
+        let minT = Infinity,
+            maxT = -Infinity,
+            count = 0;
         for (const item of dv) {
             let v = item.tensao;
             if (typeof v === 'string') v = parseFloat(v);
-            if (v && v > 0) { somaTensao += v; minT = Math.min(minT, v); maxT = Math.max(maxT, v); count++; }
+            if (v && v > 0) { somaTensao += v;
+                minT = Math.min(minT, v);
+                maxT = Math.max(maxT, v);
+                count++; }
             if (item.frequencia) somaFreq += item.frequencia;
-            if (item.fp)         somaFp   += item.fp;
+            if (item.fp) somaFp += item.fp;
         }
         if (count > 0) {
             document.getElementById('mediaTensao').innerText = (somaTensao / count).toFixed(1);
-            document.getElementById('maxTensao').innerText   = maxT.toFixed(1);
-            document.getElementById('minTensao').innerText   = minT.toFixed(1);
-            document.getElementById('mediaFreq').innerText   = (somaFreq  / count).toFixed(1);
-            document.getElementById('mediaFp').innerText     = (somaFp    / count).toFixed(3);
+            document.getElementById('maxTensao').innerText = maxT.toFixed(1);
+            document.getElementById('minTensao').innerText = minT.toFixed(1);
+            document.getElementById('mediaFreq').innerText = (somaFreq / count).toFixed(1);
+            document.getElementById('mediaFp').innerText = (somaFp / count).toFixed(3);
         }
     }
 
@@ -734,16 +733,29 @@
             "1 - Últimas 24 horas\n2 - Últimos 7 dias\n3 - Últimos 30 dias\n4 - Personalizar\n\nDigite o número:"
         );
         if (!opcao) return;
-        let horas = 0, texto = '';
-        switch(opcao) {
-            case '1': horas = 24;  texto = '24 horas'; break;
-            case '2': horas = 168; texto = '7 dias';   break;
-            case '3': horas = 720; texto = '30 dias';  break;
+        let horas = 0,
+            texto = '';
+        switch (opcao) {
+            case '1':
+                horas = 24;
+                texto = '24 horas';
+                break;
+            case '2':
+                horas = 168;
+                texto = '7 dias';
+                break;
+            case '3':
+                horas = 720;
+                texto = '30 dias';
+                break;
             case '4':
                 horas = parseInt(prompt("Quantas horas deseja manter?", "48"));
                 if (isNaN(horas) || horas < 1) { alert("❌ Valor inválido!"); return; }
-                texto = `${horas} horas`; break;
-            default: alert("❌ Opção inválida!"); return;
+                texto = `${horas} horas`;
+                break;
+            default:
+                alert("❌ Opção inválida!");
+                return;
         }
         const limite = new Date(Date.now() - horas * 3600000);
         if (!confirm(`⚠️ Apagar tudo mais antigo que ${texto}.\nData limite: ${limite.toLocaleString('pt-BR')}\n\nTem certeza?`)) return;
@@ -751,22 +763,26 @@
         if (!confirm("🔥 ÚLTIMA CHANCE! Continuar?")) return;
 
         const btn = document.getElementById('btnApagarAntigos');
-        btn.innerText = '⏳ Apagando...'; btn.disabled = true;
+        btn.innerText = '⏳ Apagando...';
+        btn.disabled = true;
         try {
             const updates = {};
-            let apagados = 0, mantidos = 0;
+            let apagados = 0,
+                mantidos = 0;
             for (const item of dadosCompletos) {
                 if (new Date(item.timestamp) < limite && item.id) {
-                    updates[`${caminhoHistorico}/${item.id}`] = null; apagados++;
+                    updates[`${caminhoHistorico}/${item.id}`] = null;
+                    apagados++;
                 } else { mantidos++; }
             }
             if (apagados > 0) await update(ref(db), updates);
             alert(`✅ Concluído!\n🗑️ Apagados: ${apagados}\n📦 Mantidos: ${mantidos}`);
             await carregarHistorico();
-        } catch(err) {
+        } catch (err) {
             alert("❌ Erro: " + err.message);
         } finally {
-            btn.innerText = '🗑️ Apagar Dados Antigos'; btn.disabled = false;
+            btn.innerText = '🗑️ Apagar Dados Antigos';
+            btn.disabled = false;
         }
     };
 
@@ -779,8 +795,8 @@
             csv += `"${formatarTimestamp(item.timestamp)}",${(item.tensao||0).toFixed(1)},${(item.frequencia||0).toFixed(1)},${(item.corrente||0).toFixed(2)},${(item.potencia||0).toFixed(0)},${(item.fp||0).toFixed(3)},${item.rssi||0},${item.estado||''},${item.evento||''}\n`;
         }
         const link = document.createElement('a');
-        link.href     = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
-        link.download = `smartprotector_${new Date().toISOString().slice(0,19).replace(/:/g,'-')}.csv`;
+        link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+        link.download = `smartprotector_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.csv`;
         link.click();
         URL.revokeObjectURL(link.href);
         const btn = document.getElementById('exportarCSV');
@@ -798,9 +814,13 @@
     async function iniciarDashboard() {
         try {
             await carregarHistorico();
+            // 🔥 APLICA FILTRO DE 30 MINUTOS AO INICIAR
+            aplicarPeriodoPredefinido(0.5);
             atualizarLegendaGrafico();
-        } catch(err) {
+            console.log("✅ Dashboard inicializado com últimos 30 minutos");
+        } catch (err) {
             document.getElementById('errorMsg').innerHTML = "⚠️ Erro ao carregar. Recarregue a página.";
+            console.error("Erro na inicialização:", err);
         }
     }
     iniciarDashboard();
