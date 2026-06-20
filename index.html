@@ -11,7 +11,7 @@
         .container { max-width: 1400px; margin: auto; }
         h1 { text-align: center; margin-bottom: 20px; color: #00ff88; }
         h2 { margin: 20px 0 10px 0; color: #aaa; font-size: 1.2rem; }
-        
+
         .firebase-status {
             position: fixed;
             top: 20px;
@@ -43,27 +43,14 @@
             50% { opacity: 1; }
             100% { opacity: 0.5; }
         }
-        
+
         .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 20px; margin-bottom: 30px; }
         .card { background: #16213e; border-radius: 15px; padding: 20px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3); transition: transform 0.2s; }
         .card:hover { transform: translateY(-5px); }
         .card h4 { font-size: 14px; color: #aaa; margin-bottom: 10px; }
         .card .valor { font-size: 42px; font-weight: bold; }
         .card .unidade { font-size: 14px; color: #aaa; margin-top: 5px; }
-        .status-ligado { color: #00ff88; }
-        .status-desligado { color: #ff4444; }
-        .frequencia-normal { color: #00ff88; }
-        .frequencia-alerta { color: #ffaa44; }
-        .frequencia-critico { color: #ff4444; }
-        .fp-bom { color: #00ff88; }
-        .fp-medio { color: #ffaa44; }
-        .fp-ruim { color: #ff4444; }
-        .sinal-excelente { color: #00ff88; }
-        .sinal-bom { color: #88ff88; }
-        .sinal-regular { color: #ffaa44; }
-        .sinal-ruim { color: #ff6644; }
-        .sinal-pessimo { color: #ff4444; }
-        
+
         .btn-filtro {
             background: #16213e;
             border: 1px solid #00ff88;
@@ -79,17 +66,10 @@
             align-items: center;
             gap: 8px;
         }
-        .btn-filtro:hover {
-            background: #00ff88;
-            color: #0f0f1a;
-        }
-        .btn-filtro .seta {
-            transition: transform 0.3s;
-        }
-        .btn-filtro.aberto .seta {
-            transform: rotate(180deg);
-        }
-        
+        .btn-filtro:hover { background: #00ff88; color: #0f0f1a; }
+        .btn-filtro .seta { transition: transform 0.3s; }
+        .btn-filtro.aberto .seta { transform: rotate(180deg); }
+
         .painel-filtro {
             background: #16213e;
             border-radius: 15px;
@@ -99,126 +79,82 @@
             transition: max-height 0.5s ease-out, padding 0.3s;
             margin-bottom: 20px;
         }
-        .painel-filtro.aberto {
-            max-height: 500px;
-            padding: 20px;
-        }
-        .filtros-row {
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-        .filtros-row label {
-            color: #aaa;
-            font-weight: bold;
-        }
-        .periodo-predefinido {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
+        .painel-filtro.aberto { max-height: 500px; padding: 20px; }
+
+        .filtros-row { display: flex; gap: 15px; flex-wrap: wrap; align-items: center; margin-bottom: 15px; }
+        .filtros-row label { color: #aaa; font-weight: bold; }
+        .periodo-predefinido { display: flex; gap: 10px; flex-wrap: wrap; }
         .periodo-predefinido button {
-            background: #0f0f1a;
-            color: white;
-            border: 1px solid #00ff88;
-            padding: 6px 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-size: 12px;
+            background: #0f0f1a; color: white; border: 1px solid #00ff88;
+            padding: 6px 12px; border-radius: 8px; cursor: pointer; transition: all 0.3s; font-size: 12px;
         }
-        .periodo-predefinido button:hover {
-            background: #00ff88;
-            color: #0f0f1a;
-        }
+        .periodo-predefinido button:hover { background: #00ff88; color: #0f0f1a; }
         .periodo-customizado {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            align-items: center;
-            border-top: 1px solid #333;
-            padding-top: 15px;
-            margin-top: 5px;
+            display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+            border-top: 1px solid #333; padding-top: 15px; margin-top: 5px;
         }
         .periodo-customizado input {
-            background: #0f0f1a;
-            color: white;
-            border: 1px solid #00ff88;
-            padding: 6px 12px;
-            border-radius: 8px;
-            cursor: pointer;
+            background: #0f0f1a; color: white; border: 1px solid #00ff88;
+            padding: 6px 12px; border-radius: 8px; cursor: pointer;
         }
         .periodo-customizado button {
-            background: #00ff88;
-            color: #0f0f1a;
-            border: none;
-            padding: 6px 15px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
+            background: #00ff88; color: #0f0f1a; border: none;
+            padding: 6px 15px; border-radius: 8px; cursor: pointer; font-weight: bold;
         }
-        .periodo-customizado button:hover {
-            background: #00cc66;
-        }
-        .btn-limpar {
-            background: #ff4444 !important;
-            color: white !important;
-        }
-        .btn-limpar:hover {
-            background: #cc0000 !important;
-        }
-        
+        .periodo-customizado button:hover { background: #00cc66; }
+        .btn-limpar { background: #ff4444 !important; color: white !important; }
+        .btn-limpar:hover { background: #cc0000 !important; }
+
+        /* ===== GRÁFICO ===== */
         .grafico-container { background: #16213e; border-radius: 15px; padding: 20px; margin-bottom: 20px; }
+
+        .btn-metrica {
+            font-size: 12px;
+            padding: 5px 14px;
+            border-radius: 20px;
+            border: 1.5px solid #444;
+            background: transparent;
+            color: #aaa;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .btn-metrica:hover { opacity: 0.85; }
+
         canvas { max-height: 400px; width: 100%; }
-        
+
         .stats { display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 20px; }
         .stat-card { background: #16213e; border-radius: 10px; padding: 15px; text-align: center; min-width: 120px; }
         .stat-card .label { font-size: 12px; color: #aaa; }
         .stat-card .value { font-size: 24px; font-weight: bold; color: #00ff88; }
-        
+
         .tabela-container { background: #16213e; border-radius: 15px; padding: 20px; overflow-x: auto; max-height: 500px; overflow-y: auto; }
         table { width: 100%; border-collapse: collapse; }
         th, td { padding: 12px; text-align: center; border-bottom: 1px solid #333; }
         th { background: #0f0f1a; color: #00ff88; position: sticky; top: 0; }
         tr:hover { background: #1a2744; }
-        
-        .exportar {
-            margin-top: 20px;
-            display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-            flex-wrap: wrap;
-        }
+
+        .exportar { margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
         .btn-export {
-            background: #00ff88;
-            color: #0f0f1a;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: all 0.3s;
+            background: #00ff88; color: #0f0f1a; border: none;
+            padding: 10px 20px; border-radius: 8px; cursor: pointer;
+            font-weight: bold; transition: all 0.3s;
         }
-        .btn-export:hover {
-            background: #00cc66;
-            transform: scale(1.02);
+        .btn-export:hover { background: #00cc66; transform: scale(1.02); }
+        .btn-apagar { background: #ffaa44; color: #0f0f1a; }
+        .btn-apagar:hover { background: #ff8800; }
+
+        .watermark {
+            position: fixed; bottom: 15px; right: 15px; opacity: 0.12;
+            font-size: 11px; color: white; background: rgba(0,0,0,0.3);
+            padding: 8px 12px; border-radius: 10px; pointer-events: none;
+            z-index: 999; font-family: monospace; text-align: right; backdrop-filter: blur(2px);
         }
-        .btn-apagar {
-            background: #ffaa44;
-            color: #0f0f1a;
-        }
-        .btn-apagar:hover {
-            background: #ff8800;
-        }
-        
-        .watermark { position: fixed; bottom: 15px; right: 15px; opacity: 0.12; font-size: 11px; color: white; background: rgba(0,0,0,0.3); padding: 8px 12px; border-radius: 10px; pointer-events: none; z-index: 999; font-family: monospace; text-align: right; backdrop-filter: blur(2px); }
         .atualizacao { text-align: center; margin-top: 20px; font-size: 11px; color: #555; }
         .error-msg { color: #ff4444; text-align: center; margin-top: 10px; font-size: 12px; }
         .loading { display: inline-block; width: 20px; height: 20px; border: 2px solid #00ff88; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        
+
         @media (max-width: 768px) {
             .cards { grid-template-columns: repeat(3, 1fr); }
             .card .valor { font-size: 28px; }
@@ -229,6 +165,7 @@
     </style>
 </head>
 <body>
+
 <div class="firebase-status">
     <div class="status-led" id="statusLed"></div>
     <span id="statusText">Conectando...</span>
@@ -236,7 +173,7 @@
 
 <div class="container">
     <h1>☁️ SMART PROTECTOR</h1>
-    
+
     <div class="cards">
         <div class="card"><h4>⚡ TENSÃO</h4><div class="valor" id="tensao">---</div><div class="unidade">Volts (V)</div></div>
         <div class="card"><h4>🌀 FREQUÊNCIA</h4><div class="valor" id="frequencia">---</div><div class="unidade">Hertz (Hz)</div></div>
@@ -245,23 +182,22 @@
         <div class="card"><h4>📐 FATOR P.</h4><div class="valor" id="fp">---</div><div class="unidade">FP</div></div>
         <div class="card"><h4>🔒 ESTADO</h4><div class="valor" id="estado">---</div><div class="unidade">Painel</div></div>
     </div>
-    
+
     <button class="btn-filtro" id="btnToggleFiltro">
         <span>📅</span> Filtrar por Período
         <span class="seta">▼</span>
     </button>
-    
+
     <div class="painel-filtro" id="painelFiltro">
         <div class="filtros-row">
             <label>⚡ Período Rápido:</label>
             <div class="periodo-predefinido">
-                 <button onclick="aplicarPeriodoPredefinido(0.5)">🕐 Últimos 30 min</button>
-                 <button onclick="aplicarPeriodoPredefinido(1)">🕐 Última hora</button>
-                 <button onclick="aplicarPeriodoPredefinido(6)">🕕 Últimas 6 horas</button>
-                 <button onclick="aplicarPeriodoPredefinido(24)">📆 Últimas 24 horas</button>
+                <button onclick="aplicarPeriodoPredefinido(0.5)">🕐 Últimos 30 min</button>
+                <button onclick="aplicarPeriodoPredefinido(1)">🕐 Última hora</button>
+                <button onclick="aplicarPeriodoPredefinido(6)">🕕 Últimas 6 horas</button>
+                <button onclick="aplicarPeriodoPredefinido(24)">📆 Últimas 24 horas</button>
             </div>
         </div>
-        
         <div class="periodo-customizado">
             <label>📅 Período Personalizado:</label>
             <input type="datetime-local" id="dataInicio">
@@ -271,11 +207,20 @@
             <button onclick="limparFiltroPersonalizado()" class="btn-limpar">🗑️ Limpar</button>
         </div>
     </div>
-    
+
+    <!-- ===== GRÁFICO COM SELETOR DE MÉTRICAS ===== -->
     <div class="grafico-container">
+        <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; align-items:center;">
+            <span style="font-size:13px; color:#aaa;">Mostrar:</span>
+            <button class="btn-metrica" id="btn-tensao"     onclick="toggleMetrica('tensao')"     style="border-color:#378ADD; background:#0d2a44; color:#7bbfee;">⚡ Tensão (V)</button>
+            <button class="btn-metrica" id="btn-corrente"   onclick="toggleMetrica('corrente')"   >🔌 Corrente (A)</button>
+            <button class="btn-metrica" id="btn-frequencia" onclick="toggleMetrica('frequencia')" >🔄 Frequência (Hz)</button>
+            <button class="btn-metrica" id="btn-potencia"   onclick="toggleMetrica('potencia')"   >🔋 Potência (W)</button>
+        </div>
+        <div id="legendaGrafico" style="display:flex; flex-wrap:wrap; gap:14px; margin-bottom:12px; font-size:12px; color:#aaa;"></div>
         <canvas id="grafico"></canvas>
     </div>
-    
+
     <h2>📊 ESTATÍSTICAS DO PERÍODO</h2>
     <div class="stats">
         <div class="stat-card"><div class="label">📈 Média Tensão</div><div class="value" id="mediaTensao">---</div></div>
@@ -286,7 +231,7 @@
         <div class="stat-card"><div class="label">📶 Sinal WiFi</div><div class="value" id="sinalWifi">---</div></div>
         <div class="stat-card"><div class="label">📝 Total Registros</div><div class="value" id="totalRegistros">---</div></div>
     </div>
-    
+
     <h2>📋 HISTÓRICO DE DADOS</h2>
     <div class="tabela-container">
         <table id="tabela">
@@ -308,7 +253,7 @@
             </tbody>
         </table>
     </div>
-    
+
     <div class="exportar">
         <button class="btn-export btn-apagar" id="btnApagarAntigos">🗑️ Apagar Dados Antigos</button>
         <button class="btn-export" id="exportarCSV">📎 Exportar Dados (CSV)</button>
@@ -321,7 +266,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getDatabase, ref, onValue, query, limitToLast, get, set, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+    import { getDatabase, ref, onValue, query, limitToLast, get, remove, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
     // ================= CONFIGURAÇÃO FIREBASE =================
     const firebaseConfig = {
@@ -337,7 +282,6 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // ================= CAMINHOS DO BANCO =================
     const caminhoTempoReal = "atual";
     const caminhoHistorico = "historico";
 
@@ -348,52 +292,40 @@
     let dataInicioFiltro = null;
     let dataFimFiltro = null;
 
-    // ================= TOGGLE DO PAINEL DE FILTRO =================
+    // ================= TOGGLE PAINEL FILTRO =================
     const btnToggle = document.getElementById('btnToggleFiltro');
     const painelFiltro = document.getElementById('painelFiltro');
-    
     btnToggle.addEventListener('click', () => {
         painelFiltro.classList.toggle('aberto');
         btnToggle.classList.toggle('aberto');
     });
 
-    // ================= FUNÇÃO DE FILTRO INTELIGENTE =================
-    // Remove apenas ZEROS e valores ABSURDOS (>500V)
-    // Mantém quedas de energia reais (50V, 30V, etc.)
+    // ================= FILTRO INTELIGENTE =================
     function filtrarDadosValidos(dados) {
         if (!dados || dados.length === 0) return [];
-        
         return dados.filter(item => {
             let tensao = item.tensao;
             if (typeof tensao === 'string') tensao = parseFloat(tensao);
-            
-            // Remove valores exatamente ZERO (inicialização do ESP)
             if (tensao === 0 || tensao === null) return false;
             if (isNaN(tensao)) return false;
-            // Remove valores absurdos (>500V)
             if (tensao > 500) return false;
-            
-            // Mantém todos os outros (incluindo quedas como 50V, 30V)
             return true;
         });
     }
 
-    // ================= FUNÇÕES AUXILIARES =================
+    // ================= AUXILIARES =================
     function formatarTimestamp(timestamp) {
         if (!timestamp) return '---';
         try {
             const date = new Date(timestamp);
             if (isNaN(date.getTime())) return timestamp;
             return date.toLocaleString('pt-BR');
-        } catch (e) {
-            return timestamp;
-        }
+        } catch (e) { return timestamp; }
     }
 
     function atualizarStatusFirebase(conectado, mensagem = null) {
-        const led = document.getElementById('statusLed');
+        const led  = document.getElementById('statusLed');
         const text = document.getElementById('statusText');
-        
         if (conectado) {
             led.classList.add('connected');
             text.textContent = mensagem || '✅ Firebase Online';
@@ -407,33 +339,33 @@
 
     function classificarSinal(rssi) {
         if (rssi >= -50) return { texto: "📶 Excelente", cor: "#00ff88" };
-        if (rssi >= -60) return { texto: "📶 Bom", cor: "#88ff88" };
-        if (rssi >= -70) return { texto: "📶 Regular", cor: "#ffaa44" };
-        if (rssi >= -80) return { texto: "📶 Ruim", cor: "#ff6644" };
-        return { texto: "📶 Péssimo", cor: "#ff4444" };
+        if (rssi >= -60) return { texto: "📶 Bom",       cor: "#88ff88" };
+        if (rssi >= -70) return { texto: "📶 Regular",   cor: "#ffaa44" };
+        if (rssi >= -80) return { texto: "📶 Ruim",      cor: "#ff6644" };
+        return              { texto: "📶 Péssimo",  cor: "#ff4444" };
     }
 
     function classificarFP(fp) {
-        if (fp >= 0.95) return { classe: "fp-bom", texto: "Ótimo", cor: "#00ff88" };
-        if (fp >= 0.85) return { classe: "fp-medio", texto: "Bom", cor: "#ffaa44" };
-        if (fp >= 0.70) return { classe: "fp-medio", texto: "Regular", cor: "#ffaa44" };
-        return { classe: "fp-ruim", texto: "Ruim", cor: "#ff4444" };
+        if (fp >= 0.95) return { cor: "#00ff88" };
+        if (fp >= 0.85) return { cor: "#ffaa44" };
+        if (fp >= 0.70) return { cor: "#ffaa44" };
+        return              { cor: "#ff4444"  };
     }
 
-function formatarEvento(evento) {
-    const eventos = {
-        "SOBRETENSAO": "🔴 SOBRETENSÃO",
-        "SUBTENSAO": "🟡 SUBTENSÃO",
-        "SOBRECORRENTE": "🔥 SOBRECORRENTE",
-        "FREQUENCIA FORA": "🔄 FREQ. FORA",
-        "QUEDA ENERGIA": "⚡ QUEDA ENERGIA",
-        "FALHA SENSOR": "💀 FALHA SENSOR",
-        "SENSOR OFFLINE": "📡 SENSOR OFF",
-        "DESLIGADO MANUAL": "👆 DESLIGADO MANUAL",
-        "NORMAL": "✅ NORMAL"
-    };
-    return eventos[evento] || `✅ ${evento}`;
-}
+    function formatarEvento(evento) {
+        const eventos = {
+            "SOBRETENSAO":     "🔴 SOBRETENSÃO",
+            "SUBTENSAO":       "🟡 SUBTENSÃO",
+            "SOBRECORRENTE":   "🔥 SOBRECORRENTE",
+            "FREQUENCIA FORA": "🔄 FREQ. FORA",
+            "QUEDA ENERGIA":   "⚡ QUEDA ENERGIA",
+            "FALHA SENSOR":    "💀 FALHA SENSOR",
+            "SENSOR OFFLINE":  "📡 SENSOR OFF",
+            "DESLIGADO MANUAL":"👆 DESLIGADO MANUAL",
+            "NORMAL":          "✅ NORMAL"
+        };
+        return eventos[evento] || `✅ ${evento}`;
+    }
 
     // ================= APAGAR DADOS ANTIGOS =================
     window.apagarDadosAntigos = async function() {
@@ -446,74 +378,51 @@ function formatarEvento(evento) {
             "4 - Personalizar (digitar horas)\n\n" +
             "Digite o número da opção:"
         );
-        
         if (!periodo) return;
-        
-        let horasManter = 0;
-        let textoPeriodo = "";
-        
+
+        let horasManter = 0, textoPeriodo = "";
         switch(periodo) {
-            case "1": horasManter = 24; textoPeriodo = "24 horas"; break;
-            case "2": horasManter = 168; textoPeriodo = "7 dias"; break;
-            case "3": horasManter = 720; textoPeriodo = "30 dias"; break;
+            case "1": horasManter = 24;  textoPeriodo = "24 horas"; break;
+            case "2": horasManter = 168; textoPeriodo = "7 dias";   break;
+            case "3": horasManter = 720; textoPeriodo = "30 dias";  break;
             case "4":
                 horasManter = parseInt(prompt("Digite quantas horas deseja MANTER:", "48"));
-                if (isNaN(horasManter) || horasManter < 1) {
-                    alert("❌ Valor inválido!");
-                    return;
-                }
-                textoPeriodo = `${horasManter} horas`;
-                break;
+                if (isNaN(horasManter) || horasManter < 1) { alert("❌ Valor inválido!"); return; }
+                textoPeriodo = `${horasManter} horas`; break;
             default: alert("❌ Opção inválida!"); return;
         }
-        
+
         const dataLimite = new Date();
         dataLimite.setHours(dataLimite.getHours() - horasManter);
-        const dataFormatada = dataLimite.toLocaleString('pt-BR');
-        
-        if (!confirm("⚠️ ATENÇÃO! ⚠️\n\n" +
-            `Você está prestes a APAGAR todos os registros\n` +
-            `MAIS ANTIGOS que ${textoPeriodo}.\n\n` +
-            `📅 Data limite: ${dataFormatada}\n\n` +
-            `Tem certeza?`)) return;
-        
-        const senha = prompt("🔒 Digite a senha PIN (2026):");
-        if (senha !== "2026") {
-            alert("❌ Senha incorreta!");
-            return;
-        }
-        
+
+        if (!confirm(`⚠️ ATENÇÃO!\n\nApagar registros mais antigos que ${textoPeriodo}.\nData limite: ${dataLimite.toLocaleString('pt-BR')}\n\nTem certeza?`)) return;
+        if (prompt("🔒 Digite a senha PIN (2026):") !== "2026") { alert("❌ Senha incorreta!"); return; }
         if (!confirm("🔥 ÚLTIMA CHANCE! Os dados serão apagados PERMANENTEMENTE.\nContinuar?")) return;
-        
+
+        const btn = document.getElementById('btnApagarAntigos');
+        const textoOriginal = btn.innerText;
+        btn.innerText = '⏳ Apagando...';
+        btn.disabled = true;
+
         try {
-            const btn = document.getElementById('btnApagarAntigos');
-            const textoOriginal = btn.innerText;
-            btn.innerText = '⏳ Apagando...';
-            btn.disabled = true;
-            
-            let apagados = 0;
-            let mantidos = 0;
-            
+            // Usa update com null para apagar tudo de uma vez (mais eficiente)
+            const updates = {};
+            let apagados = 0, mantidos = 0;
             for (const item of dadosCompletos) {
-                const dataRegistro = new Date(item.timestamp);
-                if (dataRegistro < dataLimite && item.id) {
-                    await remove(ref(db, `${caminhoHistorico}/${item.id}`));
+                if (new Date(item.timestamp) < dataLimite && item.id) {
+                    updates[`${caminhoHistorico}/${item.id}`] = null;
                     apagados++;
-                } else {
-                    mantidos++;
-                }
+                } else { mantidos++; }
             }
-            
+            if (apagados > 0) await update(ref(db), updates);
             alert(`✅ EXCLUSÃO CONCLUÍDA!\n🗑️ Apagados: ${apagados}\n📦 Mantidos: ${mantidos}`);
             await carregarHistorico();
-            
-            btn.innerText = textoOriginal;
-            btn.disabled = false;
         } catch(error) {
             console.error("Erro:", error);
             alert("❌ Erro: " + error.message);
-            document.getElementById('btnApagarAntigos').innerText = '🗑️ Apagar Dados Antigos';
-            document.getElementById('btnApagarAntigos').disabled = false;
+        } finally {
+            btn.innerText = textoOriginal;
+            btn.disabled = false;
         }
     };
 
@@ -528,7 +437,6 @@ function formatarEvento(evento) {
                 return dataItem >= dataInicioFiltro && dataItem <= dataFimFiltro;
             });
         }
-        
         atualizarTabela(dadosFiltrados);
         atualizarEstatisticas(dadosFiltrados);
         atualizarGrafico(dadosFiltrados);
@@ -537,136 +445,111 @@ function formatarEvento(evento) {
     window.aplicarPeriodoPredefinido = function(horas) {
         filtroAtivo = true;
         const agora = new Date();
-        dataFimFiltro = agora;
+        dataFimFiltro   = agora;
         dataInicioFiltro = new Date(agora.getTime() - (horas * 3600000));
-        
         document.getElementById('dataInicio').value = formatarDateTimeLocal(dataInicioFiltro);
-        document.getElementById('dataFim').value = formatarDateTimeLocal(dataFimFiltro);
+        document.getElementById('dataFim').value   = formatarDateTimeLocal(dataFimFiltro);
         filtrarPorPeriodo();
-    }
+    };
 
     window.aplicarPeriodoPersonalizado = function() {
         const inicioStr = document.getElementById('dataInicio').value;
-        const fimStr = document.getElementById('dataFim').value;
-        if (!inicioStr || !fimStr) {
-            alert("⚠️ Selecione a data e hora de início e fim!");
-            return;
-        }
-        filtroAtivo = true;
+        const fimStr    = document.getElementById('dataFim').value;
+        if (!inicioStr || !fimStr) { alert("⚠️ Selecione a data e hora de início e fim!"); return; }
+        filtroAtivo      = true;
         dataInicioFiltro = new Date(inicioStr);
-        dataFimFiltro = new Date(fimStr);
-        if (dataInicioFiltro > dataFimFiltro) {
-            alert("⚠️ Data de início não pode ser maior que data de fim!");
-            return;
-        }
+        dataFimFiltro    = new Date(fimStr);
+        if (dataInicioFiltro > dataFimFiltro) { alert("⚠️ Data de início não pode ser maior que data de fim!"); return; }
         filtrarPorPeriodo();
-    }
+    };
 
     window.limparFiltroPersonalizado = function() {
         filtroAtivo = false;
         dataInicioFiltro = null;
-        dataFimFiltro = null;
+        dataFimFiltro    = null;
         document.getElementById('dataInicio').value = '';
-        document.getElementById('dataFim').value = '';
+        document.getElementById('dataFim').value    = '';
         filtrarPorPeriodo();
-    }
+    };
 
     function formatarDateTimeLocal(date) {
-        const ano = date.getFullYear();
-        const mes = String(date.getMonth() + 1).padStart(2, '0');
-        const dia = String(date.getDate()).padStart(2, '0');
-        const hora = String(date.getHours()).padStart(2, '0');
+        const ano    = date.getFullYear();
+        const mes    = String(date.getMonth() + 1).padStart(2, '0');
+        const dia    = String(date.getDate()).padStart(2, '0');
+        const hora   = String(date.getHours()).padStart(2, '0');
         const minuto = String(date.getMinutes()).padStart(2, '0');
         return `${ano}-${mes}-${dia}T${hora}:${minuto}`;
     }
-    
-// ================= MONITORAMENTO EM TEMPO REAL =================
-function iniciarMonitoramentoTempoReal() {
-    const atualRef = ref(db, caminhoTempoReal);
-    
-    onValue(atualRef, (snapshot) => {
-        try {
-            const data = snapshot.val();
-            if (!data) {
-                atualizarStatusFirebase(false, "⚠️ Nenhum dado recebido");
-                return;
-            }
 
-            atualizarStatusFirebase(true, "✅ Firebase Online");
-            
-            // Atualiza cards de medição
-            document.getElementById('tensao').innerText = (data.tensao || 0).toFixed(1);
-            document.getElementById('frequencia').innerText = (data.frequencia || 0).toFixed(1);
-            document.getElementById('corrente').innerText = (data.corrente || 0).toFixed(2);
-            document.getElementById('potencia').innerText = (data.potencia || 0).toFixed(0);
-            
-            const fp = data.fp || 0;
-            const fpEl = document.getElementById('fp');
-            fpEl.innerText = fp.toFixed(3);
-            fpEl.style.color = classificarFP(fp).cor;
-            
-            // ========== CARD ESTADO MELHORADO ==========
-            const estado = data.estado || 'DESLIGADO';
-            const evento = data.evento || '';
-            const estadoEl = document.getElementById('estado');
-            
-            if (estado === 'LIGADO') {
-                estadoEl.innerText = 'LIGADO';
-                estadoEl.style.color = '#00ff88';
-            } else {
-                // Mapeia eventos para texto legível
+    // ================= TEMPO REAL =================
+    function iniciarMonitoramentoTempoReal() {
+        const atualRef = ref(db, caminhoTempoReal);
+        onValue(atualRef, (snapshot) => {
+            try {
+                const data = snapshot.val();
+                if (!data) { atualizarStatusFirebase(false, "⚠️ Nenhum dado recebido"); return; }
+
+                atualizarStatusFirebase(true, "✅ Firebase Online");
+
+                document.getElementById('tensao').innerText    = (data.tensao    || 0).toFixed(1);
+                document.getElementById('frequencia').innerText = (data.frequencia || 0).toFixed(1);
+                document.getElementById('corrente').innerText  = (data.corrente  || 0).toFixed(2);
+                document.getElementById('potencia').innerText  = (data.potencia  || 0).toFixed(0);
+
+                const fp   = data.fp || 0;
+                const fpEl = document.getElementById('fp');
+                fpEl.innerText    = fp.toFixed(3);
+                fpEl.style.color  = classificarFP(fp).cor;
+
+                const estado    = data.estado || 'DESLIGADO';
+                const evento    = data.evento || '';
+                const estadoEl  = document.getElementById('estado');
                 const mapaEventos = {
-                    "SOBRETENSAO": "SOBRETENSÃO",
-                    "SUBTENSAO": "SUBTENSÃO",
-                    "SOBRECORRENTE": "SOBRECORRENTE",
+                    "SOBRETENSAO":     "SOBRETENSÃO",
+                    "SUBTENSAO":       "SUBTENSÃO",
+                    "SOBRECORRENTE":   "SOBRECORRENTE",
                     "FREQUENCIA FORA": "FREQ. FORA",
-                    "QUEDA ENERGIA": "QUEDA ENERGIA",
-                    "FALHA SENSOR": "FALHA SENSOR",
-                    "SENSOR OFFLINE": "SENSOR OFF",
-                    "DESLIGADO MANUAL": "DESLIGADO MANUAL"
+                    "QUEDA ENERGIA":   "QUEDA ENERGIA",
+                    "FALHA SENSOR":    "FALHA SENSOR",
+                    "SENSOR OFFLINE":  "SENSOR OFF",
+                    "DESLIGADO MANUAL":"DESLIGADO MANUAL"
                 };
-                
-                let textoEvento = mapaEventos[evento] || evento || "DESLIGADO";
-                estadoEl.innerText = textoEvento;
-                estadoEl.style.color = '#ff4444';
-            }
-            
-            // Sinal WiFi
-            const sinalInfo = classificarSinal(data.rssi || -100);
-            const sinalEl = document.getElementById('sinalWifi');
-            sinalEl.innerHTML = sinalInfo.texto;
-            sinalEl.style.color = sinalInfo.cor;
-            
-            document.getElementById('ultimaAtualizacao').innerText = new Date().toLocaleString('pt-BR');
-            
-        } catch(error) {
-            console.error('Erro:', error);
-        }
-    }, (error) => {
-        console.error('Erro listener:', error);
-        atualizarStatusFirebase(false, `❌ ${error.message}`);
-    });
-}
+                if (estado === 'LIGADO') {
+                    estadoEl.innerText    = 'LIGADO';
+                    estadoEl.style.color  = '#00ff88';
+                } else {
+                    estadoEl.innerText   = mapaEventos[evento] || evento || "DESLIGADO";
+                    estadoEl.style.color = '#ff4444';
+                }
 
-    // ================= CARREGAR HISTÓRICO =================
+                const sinalInfo = classificarSinal(data.rssi || -100);
+                const sinalEl   = document.getElementById('sinalWifi');
+                sinalEl.innerHTML    = sinalInfo.texto;
+                sinalEl.style.color  = sinalInfo.cor;
+
+                document.getElementById('ultimaAtualizacao').innerText = new Date().toLocaleString('pt-BR');
+            } catch(error) { console.error('Erro:', error); }
+        }, (error) => {
+            console.error('Erro listener:', error);
+            atualizarStatusFirebase(false, `❌ ${error.message}`);
+        });
+    }
+
+    // ================= HISTÓRICO =================
     async function carregarHistorico() {
         const tbody = document.getElementById('tbody');
         tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;"><div class="loading"></div> 🔄 Carregando...</td></tr>`;
-        
         try {
-            const histRef = query(ref(db, caminhoHistorico), limitToLast(5000));
+            const histRef  = query(ref(db, caminhoHistorico), limitToLast(5000));
             const snapshot = await get(histRef);
-            const rawData = snapshot.val();
-            
+            const rawData  = snapshot.val();
             if (!rawData) {
                 tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;">📭 Nenhum registro no histórico</td></tr>';
                 return;
             }
-
             dadosCompletos = Object.entries(rawData).map(([key, value]) => ({ id: key, ...value }));
             dadosCompletos.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
             dadosFiltrados = [...dadosCompletos];
-            
             atualizarTabela(dadosFiltrados);
             atualizarEstatisticas(dadosFiltrados);
             atualizarGrafico(dadosFiltrados);
@@ -677,200 +560,212 @@ function iniciarMonitoramentoTempoReal() {
         }
     }
 
-    // ================= ATUALIZAR TABELA (com filtro inteligente) =================
+    // ================= TABELA =================
     function atualizarTabela(dados) {
-        const tbody = document.getElementById('tbody');
-        tbody.innerHTML = '';
-        
-        // Aplica filtro inteligente (remove zeros, mantém quedas)
+        const tbody      = document.getElementById('tbody');
+        tbody.innerHTML  = '';
         const dadosValidos = filtrarDadosValidos(dados);
-        
         if (dadosValidos.length === 0) {
             tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;">📭 Nenhum registro válido para este período</td></tr>';
             return;
         }
-        
         const reversed = [...dadosValidos].reverse();
-        const limite = Math.min(reversed.length, 500);
-        
+        const limite   = Math.min(reversed.length, 500);
         for (let i = 0; i < limite; i++) {
             const item = reversed[i];
-            const row = tbody.insertRow();
-            
-            row.insertCell(0).innerText = formatarTimestamp(item.timestamp || item.dataHora);
-            row.insertCell(1).innerText = (item.tensao || 0).toFixed(1);
-            row.insertCell(2).innerText = (item.frequencia || 0).toFixed(1);
-            row.insertCell(3).innerText = (item.corrente || 0).toFixed(2);
-            row.insertCell(4).innerText = (item.potencia || 0).toFixed(0);
-            row.insertCell(5).innerText = (item.fp || 0).toFixed(3);
-            row.insertCell(6).innerText = item.rssi || '---';
-            row.insertCell(7).innerText = item.estado || '---';
-            row.insertCell(8).innerHTML = formatarEvento(item.evento || 'NORMAL');
+            const row  = tbody.insertRow();
+            row.insertCell(0).innerText  = formatarTimestamp(item.timestamp || item.dataHora);
+            row.insertCell(1).innerText  = (item.tensao    || 0).toFixed(1);
+            row.insertCell(2).innerText  = (item.frequencia || 0).toFixed(1);
+            row.insertCell(3).innerText  = (item.corrente  || 0).toFixed(2);
+            row.insertCell(4).innerText  = (item.potencia  || 0).toFixed(0);
+            row.insertCell(5).innerText  = (item.fp        || 0).toFixed(3);
+            row.insertCell(6).innerText  = item.rssi || '---';
+            row.insertCell(7).innerText  = item.estado || '---';
+            row.insertCell(8).innerHTML  = formatarEvento(item.evento || 'NORMAL');
         }
-        
         document.getElementById('totalRegistros').innerText = dadosValidos.length;
     }
 
-    // ================= ATUALIZAR ESTATÍSTICAS (com filtro inteligente) =================
+    // ================= ESTATÍSTICAS =================
     function atualizarEstatisticas(dados) {
-        // Aplica filtro inteligente para estatísticas
         const dadosValidos = filtrarDadosValidos(dados);
-        
         if (dadosValidos.length === 0) {
-            ['mediaTensao', 'maxTensao', 'minTensao', 'mediaFreq', 'mediaFp'].forEach(id => 
+            ['mediaTensao','maxTensao','minTensao','mediaFreq','mediaFp'].forEach(id =>
                 document.getElementById(id).innerText = '---');
             return;
         }
-        
         let somaTensao = 0, somaFreq = 0, somaFp = 0;
-        let minTensao = Infinity, maxTensao = -Infinity;
-        let count = 0;
-        
+        let minTensao = Infinity, maxTensao = -Infinity, count = 0;
         for (const item of dadosValidos) {
             let tensao = item.tensao;
             if (typeof tensao === 'string') tensao = parseFloat(tensao);
-            
             if (tensao && tensao > 0) {
                 somaTensao += tensao;
-                minTensao = Math.min(minTensao, tensao);
-                maxTensao = Math.max(maxTensao, tensao);
+                minTensao   = Math.min(minTensao, tensao);
+                maxTensao   = Math.max(maxTensao, tensao);
                 count++;
             }
             if (item.frequencia) somaFreq += item.frequencia;
-            if (item.fp) somaFp += item.fp;
+            if (item.fp)         somaFp   += item.fp;
         }
-        
         if (count > 0) {
             document.getElementById('mediaTensao').innerText = (somaTensao / count).toFixed(1);
-            document.getElementById('maxTensao').innerText = maxTensao.toFixed(1);
-            document.getElementById('minTensao').innerText = minTensao.toFixed(1);
-            document.getElementById('mediaFreq').innerText = (somaFreq / count).toFixed(1);
-            document.getElementById('mediaFp').innerText = (somaFp / count).toFixed(3);
+            document.getElementById('maxTensao').innerText   = maxTensao.toFixed(1);
+            document.getElementById('minTensao').innerText   = minTensao.toFixed(1);
+            document.getElementById('mediaFreq').innerText   = (somaFreq  / count).toFixed(1);
+            document.getElementById('mediaFp').innerText     = (somaFp    / count).toFixed(3);
         }
     }
 
-    // ================= ATUALIZAR GRÁFICO  =================
-    function atualizarGrafico(dados) {
-        // Aplica filtro inteligente para o gráfico
-        let dadosValidos = filtrarDadosValidos(dados);
-        
-        if (dadosValidos.length === 0) {
-            if (grafico) grafico.destroy();
-            return;
-        }
-        
-        const dadosGrafico = dadosValidos;
-        
-        const labels = dadosGrafico.map(d => {
-            let time = d.timestamp || '';
-            if (typeof time === 'string') {
-                const match = time.match(/(\d{2}):(\d{2}):(\d{2})/);
-                if (match) return `${match[1]}:${match[2]}`;
-                const match2 = time.match(/(\d{2}):(\d{2})/);
-                if (match2) return match2[0];
-            }
-            return '--:--';
-        });
-        
-        const tensoes = dadosGrafico.map(d => {
-            let v = d.tensao;
-            if (typeof v === 'string') v = parseFloat(v);
-            return v || 0;
-        });
-        
-        const valoresValidos = tensoes.filter(v => v > 0);
-        if (valoresValidos.length === 0) return;
-        
-        const minTensao = Math.min(...valoresValidos);
-        const maxTensao = Math.max(...valoresValidos);
-        const margem = 10;
-        
-        let yMin = Math.max(0, minTensao - margem);
-        let yMax = maxTensao + margem;
-        
-        if (yMax - yMin < 20) {
-            const center = (yMin + yMax) / 2;
-            yMin = center - 10;
-            yMax = center + 10;
-        }
-        
-        if (grafico) grafico.destroy();
-        
-        grafico = new Chart(document.getElementById('grafico'), {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Tensão (V)',
-                    data: tensoes,
-                    borderColor: '#00ff88',
-                    backgroundColor: 'rgba(0,255,136,0.1)',
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.2,
-                    pointRadius: 3,
-                    pointBackgroundColor: '#00ff88',
-                    pointBorderColor: '#fff',
-                    pointBorderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                plugins: {
-                    legend: { labels: { color: '#fff' } },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return `⚡ Tensão: ${context.raw.toFixed(1)} V`;
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    y: {
-                        min: yMin,
-                        max: yMax,
-                        title: { display: true, text: 'Tensão (V)', color: '#aaa' },
-                        ticks: { 
-                            color: '#aaa',
-                            callback: function(value) {
-                                return value.toFixed(0) + 'V';
-                            }
-                        },
-                        grid: { color: 'rgba(255,255,255,0.1)' }
-                    },
-                    x: {
-                        title: { display: true, text: 'Horário', color: '#aaa' },
-                        ticks: { color: '#aaa', maxRotation: 45, minRotation: 45, maxTicksLimit: 10 },
-                        grid: { color: 'rgba(255,255,255,0.1)' }
-                    }
-                }
-            }
+    // ================= GRÁFICO MULTI-MÉTRICA =================
+    const configsMetrica = {
+        tensao:     { label: 'Tensão (V)',       color: '#378ADD', dash: [],      yID: 'yV'  },
+        corrente:   { label: 'Corrente (A)',     color: '#1D9E75', dash: [6,3],   yID: 'yA'  },
+        frequencia: { label: 'Frequência (Hz)', color: '#EF9F27', dash: [2,4],   yID: 'yHz' },
+        potencia:   { label: 'Potência (W)',     color: '#D85A30', dash: [10,4],  yID: 'yW'  },
+    };
+
+    const metricasAtivas = { tensao: true, corrente: false, frequencia: false, potencia: false };
+
+    const btnStyleAtivo = {
+        tensao:     { border:'#378ADD', bg:'#0d2a44', color:'#7bbfee' },
+        corrente:   { border:'#1D9E75', bg:'#0a2a1e', color:'#5dcaa5' },
+        frequencia: { border:'#EF9F27', bg:'#2a1e05', color:'#fac775' },
+        potencia:   { border:'#D85A30', bg:'#2a0f05', color:'#f09975' },
+    };
+
+    function atualizarLegendaGrafico() {
+        const div = document.getElementById('legendaGrafico');
+        div.innerHTML = '';
+        Object.entries(configsMetrica).filter(([k]) => metricasAtivas[k]).forEach(([k, cfg]) => {
+            div.innerHTML += `<span style="display:flex;align-items:center;gap:5px;">
+                <span style="width:24px;height:3px;background:${cfg.color};display:inline-block;border-radius:2px;"></span>
+                ${cfg.label}
+            </span>`;
         });
     }
-    
+
+    window.toggleMetrica = function(key) {
+        metricasAtivas[key] = !metricasAtivas[key];
+        const btn = document.getElementById('btn-' + key);
+        const st  = btnStyleAtivo[key];
+        if (metricasAtivas[key]) {
+            btn.style.border     = '1.5px solid ' + st.border;
+            btn.style.background = st.bg;
+            btn.style.color      = st.color;
+        } else {
+            btn.style.border     = '1.5px solid #444';
+            btn.style.background = 'transparent';
+            btn.style.color      = '#aaa';
+        }
+        if (grafico) {
+            grafico.data.datasets  = buildDatasets(dadosFiltrados);
+            grafico.options.scales = buildScales();
+            grafico.update();
+        }
+        atualizarLegendaGrafico();
+    };
+
+    function buildDatasets(dados) {
+        const dadosValidos = filtrarDadosValidos(dados);
+        const campos = {
+            tensao:     d => { let v = d.tensao; if (typeof v === 'string') v = parseFloat(v); return v || 0; },
+            corrente:   d => d.corrente   || 0,
+            frequencia: d => d.frequencia || 0,
+            potencia:   d => d.potencia   || 0,
+        };
+        return Object.entries(configsMetrica)
+            .filter(([k]) => metricasAtivas[k])
+            .map(([k, cfg]) => ({
+                label:           cfg.label,
+                data:            dadosValidos.map(campos[k]),
+                borderColor:     cfg.color,
+                backgroundColor: cfg.color + '18',
+                borderWidth:     2,
+                fill:            false,
+                tension:         0.3,
+                pointRadius:     2,
+                borderDash:      cfg.dash,
+                yAxisID:         cfg.yID,
+            }));
+    }
+
+    function buildScales() {
+        const scales = {
+            x: {
+                ticks: { color: '#aaa', maxTicksLimit: 10, maxRotation: 45 },
+                grid:  { color: 'rgba(255,255,255,0.05)' }
+            }
+        };
+        const yRanges  = { yV:[195,245], yA:[0,30], yHz:[57,63], yW:[0,6000] };
+        const yPos     = { yV:'left', yA:'right', yHz:'left', yW:'right' };
+        const yLabels  = { yV:'Tensão (V)', yA:'Corrente (A)', yHz:'Freq (Hz)', yW:'Potência (W)' };
+        const yColors  = { yV:'#378ADD',    yA:'#1D9E75',      yHz:'#EF9F27',   yW:'#D85A30' };
+        const metricaToY = { tensao:'yV', corrente:'yA', frequencia:'yHz', potencia:'yW' };
+
+        const activeYIDs = Object.entries(metricasAtivas)
+            .filter(([,v]) => v).map(([k]) => metricaToY[k]);
+
+        Object.entries(yRanges).forEach(([id, range]) => {
+            const isActive = activeYIDs.includes(id);
+            scales[id] = {
+                type:     'linear',
+                display:  isActive,
+                position: yPos[id],
+                min:      range[0],
+                max:      range[1],
+                title:    { display: true, text: yLabels[id], color: yColors[id], font: { size: 11 } },
+                ticks:    { color: yColors[id], font: { size: 10 }, maxTicksLimit: 6 },
+                grid:     { drawOnChartArea: activeYIDs[0] === id, color: 'rgba(255,255,255,0.05)' },
+            };
+        });
+        return scales;
+    }
+
+    function atualizarGrafico(dados) {
+        const dadosValidos = filtrarDadosValidos(dados);
+        if (dadosValidos.length === 0) { if (grafico) grafico.destroy(); return; }
+
+        const labels = dadosValidos.map(d => {
+            const t = d.timestamp || '';
+            const m = t.match(/(\d{2}):(\d{2}):\d{2}/);
+            return m ? m[1] + ':' + m[2] : '--:--';
+        });
+
+        if (grafico) grafico.destroy();
+
+        grafico = new Chart(document.getElementById('grafico'), {
+            type: 'line',
+            data: { labels, datasets: buildDatasets(dados) },
+            options: {
+                responsive:          true,
+                maintainAspectRatio: true,
+                animation:           { duration: 300 },
+                plugins:             { legend: { display: false } },
+                scales:              buildScales(),
+                interaction:         { mode: 'index', intersect: false },
+            }
+        });
+        atualizarLegendaGrafico();
+    }
+
     // ================= EXPORTAR CSV =================
     function exportarCSV() {
-        // Aplica filtro inteligente para exportação também
         const dadosValidos = filtrarDadosValidos(dadosFiltrados);
-        
-        if (!dadosValidos.length) { 
-            alert("📭 Sem dados válidos para exportar!"); 
-            return; 
-        }
-        
+        if (!dadosValidos.length) { alert("📭 Sem dados válidos para exportar!"); return; }
+
         let csv = "\uFEFFData/Hora,Tensão (V),Frequência (Hz),Corrente (A),Potência (W),Fator Potência,RSSI (dBm),Estado,Evento\n";
         for (const item of dadosValidos) {
             csv += `"${formatarTimestamp(item.timestamp)}",${(item.tensao||0).toFixed(1)},${(item.frequencia||0).toFixed(1)},${(item.corrente||0).toFixed(2)},${(item.potencia||0).toFixed(0)},${(item.fp||0).toFixed(3)},${item.rssi||0},${item.estado||''},${item.evento||''}\n`;
         }
         const blob = new Blob([csv], {type: 'text/csv'});
         const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = `smartprotector_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.csv`;
+        link.href     = URL.createObjectURL(blob);
+        link.download = `smartprotector_${new Date().toISOString().slice(0,19).replace(/:/g,'-')}.csv`;
         link.click();
         URL.revokeObjectURL(link.href);
-        
+
         const btn = document.getElementById('exportarCSV');
         const original = btn.innerText;
         btn.innerText = '✅ Exportado!';
@@ -881,28 +776,24 @@ function iniciarMonitoramentoTempoReal() {
     document.getElementById('exportarCSV').addEventListener('click', exportarCSV);
     document.getElementById('btnApagarAntigos').addEventListener('click', () => window.apagarDadosAntigos());
 
-// ================= INICIALIZAÇÃO =================
-console.log("🚀 Dashboard iniciado!");
+    // ================= INICIALIZAÇÃO =================
+    iniciarMonitoramentoTempoReal();
 
-iniciarMonitoramentoTempoReal();
-
-
-async function iniciarDashboard() {
-    try {
-        await carregarHistorico();
-        aplicarPeriodoPredefinido(0.5);
-        console.log("✅ Dashboard inicializado com sucesso!");
-    } catch(error) {
-        console.error("❌ Erro na inicialização:", error);
-        document.getElementById('errorMsg').innerHTML = "⚠️ Erro ao carregar dados. Recarregue a página.";
+    async function iniciarDashboard() {
+        try {
+            await carregarHistorico();
+            aplicarPeriodoPredefinido(0.5);
+            atualizarLegendaGrafico();
+        } catch(error) {
+            console.error("❌ Erro na inicialização:", error);
+            document.getElementById('errorMsg').innerHTML = "⚠️ Erro ao carregar dados. Recarregue a página.";
+        }
     }
-}
 
-iniciarDashboard();
+    iniciarDashboard();
 
- setInterval(() => {
-        aplicarPeriodoPredefinido(0.5);
-    }, 30000);
+    // Atualiza o período visível a cada 30 segundos
+    setInterval(() => aplicarPeriodoPredefinido(0.5), 30000);
 </script>
 </body>
 </html>
