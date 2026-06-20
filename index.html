@@ -414,8 +414,6 @@
         mostrarOnline();
         document.getElementById('ultimoDadoHora').innerText = horaFormatada;
         document.getElementById('offlineBanner').classList.remove('visivel');
-        ['tensao','frequencia','corrente','potencia','fp'].forEach(id =>
-            document.getElementById(id).classList.remove('valor-offline'));
     }
 
     // ===== GRÁFICO MULTI-MÉTRICA =====
@@ -442,7 +440,6 @@
         metricasAtivas[key] = !metricasAtivas[key];
         const btn = document.getElementById('btn-' + key);
         const prefix = 'ativo-';
-        // Remove todas as classes ativo
         ['tensao','corrente','frequencia','potencia'].forEach(k => btn.classList.remove(prefix + k));
         if (metricasAtivas[key]) {
             btn.classList.add(prefix + key);
@@ -510,39 +507,72 @@
         return scales;
     }
 
+    // ===== ATUALIZAR GRÁFICO =====
     function atualizarGrafico(dados) {
         const dv = filtrarDadosValidos(dados);
-        if (dv.length === 0) { if (grafico) { grafico.destroy(); grafico = null; } return; }
+        if (dv.length === 0) { 
+            if (grafico) { 
+                grafico.destroy(); 
+                grafico = null; 
+            } 
+            return; 
+        }
 
         const labels = dv.map(d => {
             const m = (d.timestamp || '').match(/(\d{2}):(\d{2}):\d{2}/);
             return m ? m[1] + ':' + m[2] : '--:--';
         });
 
-        if (grafico) { grafico.destroy(); grafico = null; }
+        if (grafico) { 
+            grafico.destroy(); 
+            grafico = null; 
+        }
 
         grafico = new Chart(document.getElementById('grafico'), {
             type: 'line',
-            data: { labels, datasets: buildDatasets(dados) },
+            data: { 
+                labels: labels, 
+                datasets: buildDatasets(dados) 
+            },
             options: {
-                responsive: true, maintainAspectRatio: true,
+                responsive: true, 
+                maintainAspectRatio: true,
                 animation: { duration: 300 },
                 plugins: { legend: { display: false } },
                 scales: buildScales(),
                 interaction: { mode: 'index', intersect: false },
             }
         });
+        
         atualizarLegendaGrafico();
     }
 
     // ===== ADICIONAR PONTO EM TEMPO REAL =====
     function adicionarPontoGrafico(novoDado) {
-        if (!grafico || filtroAtivo || isOffline) return;
+        if (!grafico) return;
+        if (isOffline) return;
 
         const ts = novoDado.timestamp || '';
         const m = ts.match(/(\d{2}):(\d{2}):\d{2}/);
         const label = m ? m[1] + ':' + m[2] : new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
+        // 🔥 SE TIVER FILTRO, NÃO ADICIONA PONTO A PONTO
+        if (filtroAtivo) {
+            // Atualiza a cada 3 pontos para não sobrecarregar
+            pontosAcumulados++;
+            if (pontosAcumulados % 3 === 0) {
+                // Verifica se o novo dado está dentro do período filtrado
+                const dataItem = new Date(novoDado.timestamp || novoDado.dataHora);
+                if (dataItem >= dataInicioFiltro && dataItem <= dataFimFiltro) {
+                    // Adiciona aos dados filtrados e recria o gráfico
+                    dadosFiltrados.push(novoDado);
+                    atualizarGrafico(dadosFiltrados);
+                }
+            }
+            return;
+        }
+
+        // 🔥 SEM FILTRO: ATUALIZA EM TEMPO REAL
         grafico.data.labels.push(label);
 
         const campoDoY = { yV: 'tensao', yA: 'corrente', yHz: 'frequencia', yW: 'potencia' };
@@ -614,7 +644,7 @@
 
                 document.getElementById('ultimaAtualizacao').innerText = new Date().toLocaleString('pt-BR');
 
-                // Adiciona ponto no gráfico
+                // 🔥 ADICIONA PONTO NO GRÁFICO EM TEMPO REAL
                 adicionarPontoGrafico(data);
 
             } catch (err) {
@@ -664,6 +694,7 @@
         atualizarTabela(dadosFiltrados);
         atualizarEstatisticas(dadosFiltrados);
         atualizarGrafico(dadosFiltrados);
+        pontosAcumulados = 0;
     }
 
     function formatarDateTimeLocal(date) {
@@ -732,19 +763,12 @@
                 document.getElementById(id).innerText = '---');
             return;
         }
-        let somaTensao = 0,
-            somaFreq = 0,
-            somaFp = 0;
-        let minT = Infinity,
-            maxT = -Infinity,
-            count = 0;
+        let somaTensao = 0, somaFreq = 0, somaFp = 0;
+        let minT = Infinity, maxT = -Infinity, count = 0;
         for (const item of dv) {
             let v = item.tensao;
             if (typeof v === 'string') v = parseFloat(v);
-            if (v && v > 0) { somaTensao += v;
-                minT = Math.min(minT, v);
-                maxT = Math.max(maxT, v);
-                count++; }
+            if (v && v > 0) { somaTensao += v; minT = Math.min(minT, v); maxT = Math.max(maxT, v); count++; }
             if (item.frequencia) somaFreq += item.frequencia;
             if (item.fp) somaFp += item.fp;
         }
@@ -764,29 +788,16 @@
             "1 - Últimas 24 horas\n2 - Últimos 7 dias\n3 - Últimos 30 dias\n4 - Personalizar\n\nDigite o número:"
         );
         if (!opcao) return;
-        let horas = 0,
-            texto = '';
+        let horas = 0, texto = '';
         switch (opcao) {
-            case '1':
-                horas = 24;
-                texto = '24 horas';
-                break;
-            case '2':
-                horas = 168;
-                texto = '7 dias';
-                break;
-            case '3':
-                horas = 720;
-                texto = '30 dias';
-                break;
+            case '1': horas = 24; texto = '24 horas'; break;
+            case '2': horas = 168; texto = '7 dias'; break;
+            case '3': horas = 720; texto = '30 dias'; break;
             case '4':
                 horas = parseInt(prompt("Quantas horas deseja manter?", "48"));
                 if (isNaN(horas) || horas < 1) { alert("❌ Valor inválido!"); return; }
-                texto = `${horas} horas`;
-                break;
-            default:
-                alert("❌ Opção inválida!");
-                return;
+                texto = `${horas} horas`; break;
+            default: alert("❌ Opção inválida!"); return;
         }
         const limite = new Date(Date.now() - horas * 3600000);
         if (!confirm(`⚠️ Apagar tudo mais antigo que ${texto}.\nData limite: ${limite.toLocaleString('pt-BR')}\n\nTem certeza?`)) return;
@@ -798,8 +809,7 @@
         btn.disabled = true;
         try {
             const updates = {};
-            let apagados = 0,
-                mantidos = 0;
+            let apagados = 0, mantidos = 0;
             for (const item of dadosCompletos) {
                 if (new Date(item.timestamp) < limite && item.id) {
                     updates[`${caminhoHistorico}/${item.id}`] = null;
@@ -845,7 +855,6 @@
     async function iniciarDashboard() {
         try {
             await carregarHistorico();
-            // 🔥 APLICA FILTRO DE 30 MINUTOS AO INICIAR
             aplicarPeriodoPredefinido(0.5);
             atualizarLegendaGrafico();
             console.log("✅ Dashboard inicializado com últimos 30 minutos");
