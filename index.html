@@ -54,12 +54,34 @@
         .btn-filtro {
             background: #16213e; border: 1px solid #00ff88; color: #00ff88;
             padding: 10px 20px; border-radius: 25px; cursor: pointer;
-            font-size: 14px; font-weight: bold; margin-bottom: 20px;
-            transition: all 0.3s; display: inline-flex; align-items: center; gap: 8px;
+            font-size: 14px; font-weight: bold;
+            transition: all 0.3s;
+            display: inline-flex; align-items: center; gap: 8px;
         }
         .btn-filtro:hover { background: #00ff88; color: #0f0f1a; }
         .btn-filtro .seta { transition: transform 0.3s; }
         .btn-filtro.aberto .seta { transform: rotate(180deg); }
+        
+        .btn-atualizar {
+            border-color: #ffaa44 !important;
+            color: #ffaa44 !important;
+        }
+        .btn-atualizar:hover {
+            background: #ffaa44 !important;
+            color: #0f0f1a !important;
+        }
+        .btn-atualizar:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .botoes-topo {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 20px;
+        }
 
         .painel-filtro {
             background: #16213e; border-radius: 15px; padding: 0;
@@ -142,6 +164,8 @@
             .firebase-status { top: 10px; right: 10px; font-size: 10px; }
             .exportar { flex-direction: column; }
             .exportar button { width: 100%; }
+            .botoes-topo { flex-direction: column; align-items: stretch; }
+            .botoes-topo .btn-filtro { justify-content: center; }
         }
     </style>
 </head>
@@ -170,10 +194,16 @@
         <div class="card"><h4>🔒 ESTADO</h4><div class="valor" id="estado">---</div><div class="unidade">Painel</div></div>
     </div>
 
-    <button class="btn-filtro" id="btnToggleFiltro">
-        <span>📅</span> Filtrar por Período
-        <span class="seta">▼</span>
-    </button>
+    <!-- Botões de filtro e atualizar -->
+    <div class="botoes-topo">
+        <button class="btn-filtro" id="btnToggleFiltro">
+            <span>📅</span> Filtrar por Período
+            <span class="seta">▼</span>
+        </button>
+        <button class="btn-filtro btn-atualizar" id="btnAtualizarGrafico">
+            🔄 Atualizar Gráfico
+        </button>
+    </div>
 
     <div class="painel-filtro" id="painelFiltro">
         <div class="filtros-row">
@@ -289,6 +319,42 @@
     document.getElementById('btnToggleFiltro').addEventListener('click', () => {
         document.getElementById('painelFiltro').classList.toggle('aberto');
         document.getElementById('btnToggleFiltro').classList.toggle('aberto');
+    });
+
+    // ===== BOTÃO ATUALIZAR GRÁFICO =====
+    document.getElementById('btnAtualizarGrafico').addEventListener('click', async function() {
+        const btn = this;
+        const textoOriginal = btn.innerHTML;
+        
+        btn.innerHTML = '⏳ Atualizando...';
+        btn.disabled = true;
+        
+        try {
+            // Recarrega o histórico primeiro (dados mais recentes)
+            await carregarHistorico();
+            
+            // Depois reaplica o filtro se houver
+            if (filtroAtivo) {
+                filtrarPorPeriodo();
+            } else {
+                atualizarGrafico(dadosCompletos);
+                atualizarEstatisticas(dadosCompletos);
+                atualizarTabela(dadosCompletos);
+            }
+            
+            btn.innerHTML = '✅ Atualizado!';
+            setTimeout(() => {
+                btn.innerHTML = textoOriginal;
+                btn.disabled = false;
+            }, 1500);
+        } catch (error) {
+            console.error('Erro ao atualizar:', error);
+            btn.innerHTML = '❌ Erro!';
+            setTimeout(() => {
+                btn.innerHTML = textoOriginal;
+                btn.disabled = false;
+            }, 2000);
+        }
     });
 
     // ===== FILTRO INTELIGENTE =====
@@ -556,15 +622,11 @@
         const m = ts.match(/(\d{2}):(\d{2}):\d{2}/);
         const label = m ? m[1] + ':' + m[2] : new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-        // 🔥 SE TIVER FILTRO, NÃO ADICIONA PONTO A PONTO
         if (filtroAtivo) {
-            // Atualiza a cada 3 pontos para não sobrecarregar
             pontosAcumulados++;
             if (pontosAcumulados % 3 === 0) {
-                // Verifica se o novo dado está dentro do período filtrado
                 const dataItem = new Date(novoDado.timestamp || novoDado.dataHora);
                 if (dataItem >= dataInicioFiltro && dataItem <= dataFimFiltro) {
-                    // Adiciona aos dados filtrados e recria o gráfico
                     dadosFiltrados.push(novoDado);
                     atualizarGrafico(dadosFiltrados);
                 }
@@ -572,7 +634,6 @@
             return;
         }
 
-        // 🔥 SEM FILTRO: ATUALIZA EM TEMPO REAL
         grafico.data.labels.push(label);
 
         const campoDoY = { yV: 'tensao', yA: 'corrente', yHz: 'frequencia', yW: 'potencia' };
@@ -644,7 +705,6 @@
 
                 document.getElementById('ultimaAtualizacao').innerText = new Date().toLocaleString('pt-BR');
 
-                // 🔥 ADICIONA PONTO NO GRÁFICO EM TEMPO REAL
                 adicionarPontoGrafico(data);
 
             } catch (err) {
