@@ -282,6 +282,7 @@
     let ultimoTimestamp = null;
     let ultimoRecebidoMs = null;
     let timerOffline = null;
+    let isOffline = false;
     let pontosAcumulados = 0;
 
     // ===== TOGGLE FILTRO =====
@@ -352,35 +353,65 @@
         return m[evento] || `✅ ${evento}`;
     }
 
+    // ===== MOSTRAR OFFLINE =====
+    function mostrarOffline() {
+        if (isOffline) return;
+        isOffline = true;
+        
+        const banner = document.getElementById('offlineBanner');
+        banner.classList.add('visivel');
+        
+        ['tensao', 'frequencia', 'corrente', 'potencia', 'fp'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el.innerText !== '---') {
+                el.innerText = '---';
+                el.style.color = '#555';
+            }
+        });
+        
+        const estadoEl = document.getElementById('estado');
+        estadoEl.innerText = 'OFFLINE';
+        estadoEl.style.color = '#888';
+        
+        const sinalEl = document.getElementById('sinalWifi');
+        sinalEl.innerHTML = '📵 OFFLINE';
+        sinalEl.style.color = '#555';
+        
+        atualizarStatusFirebase(false, '⚠️ ESP32 Offline');
+    }
+
+    // ===== MOSTRAR ONLINE =====
+    function mostrarOnline() {
+        if (!isOffline) return;
+        isOffline = false;
+        
+        const banner = document.getElementById('offlineBanner');
+        banner.classList.remove('visivel');
+        
+        ['tensao', 'frequencia', 'corrente', 'potencia', 'fp'].forEach(id => {
+            document.getElementById(id).style.color = '';
+        });
+        
+        atualizarStatusFirebase(true, "✅ ESP32 Online");
+    }
+
     // ===== DETECÇÃO DE OFFLINE =====
     function iniciarWatchdogOffline() {
         if (timerOffline) clearInterval(timerOffline);
         timerOffline = setInterval(() => {
             if (!ultimoRecebidoMs) return;
             const segundos = Math.floor((Date.now() - ultimoRecebidoMs) / 1000);
-            const banner = document.getElementById('offlineBanner');
-
+            
             if (segundos > LIMITE_OFFLINE_S) {
+                mostrarOffline();
                 document.getElementById('tempoOffline').innerText = segundos;
-                banner.classList.add('visivel');
-                atualizarStatusFirebase(false, '⚠️ ESP32 Offline');
-                ['tensao','frequencia','corrente','potencia','fp'].forEach(id => {
-                    const el = document.getElementById(id);
-                    el.innerText = '---';
-                    el.classList.add('valor-offline');
-                });
-                const estadoEl = document.getElementById('estado');
-                estadoEl.innerText = 'OFFLINE';
-                estadoEl.style.color = '#555';
-                const sinalEl = document.getElementById('sinalWifi');
-                sinalEl.innerHTML = '📵 Sem sinal';
-                sinalEl.style.color = '#555';
             }
         }, 5000);
     }
 
     function registrarDadoRecebido(horaFormatada) {
         ultimoRecebidoMs = Date.now();
+        mostrarOnline();
         document.getElementById('ultimoDadoHora').innerText = horaFormatada;
         document.getElementById('offlineBanner').classList.remove('visivel');
         ['tensao','frequencia','corrente','potencia','fp'].forEach(id =>
@@ -506,7 +537,7 @@
 
     // ===== ADICIONAR PONTO EM TEMPO REAL =====
     function adicionarPontoGrafico(novoDado) {
-        if (!grafico || filtroAtivo) return;
+        if (!grafico || filtroAtivo || isOffline) return;
 
         const ts = novoDado.timestamp || '';
         const m = ts.match(/(\d{2}):(\d{2}):\d{2}/);
@@ -528,10 +559,6 @@
         }
 
         grafico.update('none');
-        pontosAcumulados++;
-        if (pontosAcumulados % 30 === 0) {
-            console.log(`📊 ${pontosAcumulados} pontos adicionados em tempo real`);
-        }
     }
 
     // ===== TEMPO REAL =====
@@ -550,17 +577,17 @@
         onValue(ref(db, caminhoTempoReal), (snapshot) => {
             try {
                 const data = snapshot.val();
+                
                 if (!data) {
-                    atualizarStatusFirebase(false, "⚠️ Nenhum dado recebido");
+                    mostrarOffline();
                     return;
                 }
 
+                registrarDadoRecebido(new Date().toLocaleTimeString('pt-BR'));
+                mostrarOnline();
+
                 if (data.timestamp && data.timestamp === ultimoTimestamp) return;
                 ultimoTimestamp = data.timestamp || null;
-
-                const horaFormatada = new Date().toLocaleTimeString('pt-BR');
-                registrarDadoRecebido(horaFormatada);
-                atualizarStatusFirebase(true, "✅ Firebase Online");
 
                 document.getElementById('tensao').innerText = (data.tensao || 0).toFixed(1);
                 document.getElementById('frequencia').innerText = (data.frequencia || 0).toFixed(1);
@@ -587,12 +614,16 @@
 
                 document.getElementById('ultimaAtualizacao').innerText = new Date().toLocaleString('pt-BR');
 
-                // Adiciona ponto no gráfico em tempo real
+                // Adiciona ponto no gráfico
                 adicionarPontoGrafico(data);
 
-            } catch (err) { console.error('Erro tempo real:', err); }
+            } catch (err) {
+                console.error('Erro tempo real:', err);
+                mostrarOffline();
+            }
         }, (err) => {
-            atualizarStatusFirebase(false, `❌ ${err.message}`);
+            console.error('Erro listener:', err);
+            mostrarOffline();
         });
     }
 
