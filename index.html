@@ -77,7 +77,6 @@
         }
         .status-led.connected { background: #00ff88; box-shadow: 0 0 5px #00ff88; }
         .status-led.sem-internet { background: #ffaa44; box-shadow: 0 0 5px #ffaa44; }
-        .status-led.firebase-offline { background: #ff8800; box-shadow: 0 0 5px #ff8800; }
 
         @keyframes pulse { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
         @keyframes spin  { to { transform: rotate(360deg); } }
@@ -103,11 +102,6 @@
             border: 1px solid #ffaa44;
             color: #ffddaa;
         }
-        .offline-banner.firebase-offline {
-            background: #6a4a1a;
-            border: 1px solid #ff8800;
-            color: #ffcc88;
-        }
         [data-theme="light"] .offline-banner.esp32-offline {
             background: #ffdddd;
             color: #cc0000;
@@ -116,12 +110,44 @@
             background: #ffeecc;
             color: #996600;
         }
-        [data-theme="light"] .offline-banner.firebase-offline {
-            background: #ffeedd;
-            color: #aa5500;
-        }
 
         .valor-offline { color: var(--text-muted) !important; }
+
+        /* ===== AVISO DE RECARGA ===== */
+        .aviso-recarga {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #00ff88;
+            color: #0f0f1a;
+            padding: 25px 40px;
+            border-radius: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            z-index: 9999;
+            box-shadow: 0 4px 30px rgba(0,255,136,0.3);
+            text-align: center;
+            animation: fadeIn 0.3s ease;
+        }
+        [data-theme="light"] .aviso-recarga {
+            background: #00cc66;
+            color: #ffffff;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+            to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+        .aviso-recarga .contador {
+            font-size: 32px;
+            color: #0f0f1a;
+        }
+        [data-theme="light"] .aviso-recarga .contador { color: #ffffff; }
+        .aviso-recarga .sub {
+            font-size: 14px;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
 
         /* ===== CARDS ===== */
         .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 20px; margin-bottom: 30px; }
@@ -383,6 +409,7 @@
             .eventos-stats { flex-direction: row; flex-wrap: wrap; }
             .evento-stat { min-width: 80px; flex: 1; }
             .evento-item { flex-direction: column; text-align: center; gap: 5px; }
+            .aviso-recarga { padding: 15px 20px; font-size: 14px; }
         }
     </style>
 </head>
@@ -553,6 +580,8 @@
     let isOffline = false;
     let pontosAcumulados = 0;
     let secaoEventosVisivel = false;
+    let firebaseListener = null;
+    let timeoutRecarga = null;
 
     // ===== TEMA =====
     document.getElementById('btnToggleTema').addEventListener('click', () => {
@@ -708,8 +737,7 @@
         const led = document.getElementById('statusLed');
         const text = document.getElementById('statusText');
         
-        // Remove todas as classes de status
-        led.classList.remove('connected', 'sem-internet', 'firebase-offline');
+        led.classList.remove('connected', 'sem-internet');
         
         if (conectado) {
             led.classList.add('connected');
@@ -718,9 +746,6 @@
         } else if (tipo === 'sem-internet') {
             led.classList.add('sem-internet');
             text.textContent = msg || '🌐 Sem Internet';
-        } else if (tipo === 'firebase-offline') {
-            led.classList.add('firebase-offline');
-            text.textContent = msg || '☁️ Firebase Offline';
         } else {
             text.textContent = msg || '⚠️ ESP32 Offline';
         }
@@ -756,7 +781,7 @@
         return m[evento] || `✅ ${evento}`;
     }
 
-    // ===== MOSTRAR OFFLINE INTELIGENTE =====
+    // ===== MOSTRAR OFFLINE =====
     function mostrarOffline(tipo = 'esp32') {
         if (isOffline) return;
         isOffline = true;
@@ -765,9 +790,7 @@
         const estadoEl = document.getElementById('estado');
         const sinalEl = document.getElementById('sinalWifi');
         
-        // 🔥 VERIFICA SE O PROBLEMA É DO SITE
         if (!navigator.onLine) {
-            // Site sem internet!
             banner.className = 'offline-banner visivel sem-internet';
             banner.innerHTML = `🌐 SEM INTERNET — Verifique sua conexão com a internet!`;
             
@@ -781,22 +804,6 @@
             return;
         }
         
-        // Site tem internet, mas Firebase/ESP32 não responde
-        if (tipo === 'firebase') {
-            banner.className = 'offline-banner visivel firebase-offline';
-            banner.innerHTML = `☁️ FIREBASE OFFLINE — Não foi possível conectar ao banco de dados`;
-            
-            estadoEl.innerText = 'FIREBASE OFF';
-            estadoEl.style.color = '#ff8800';
-            
-            sinalEl.innerHTML = '☁️ Offline';
-            sinalEl.style.color = '#ff8800';
-            
-            atualizarStatusFirebase(false, '☁️ Firebase Offline', 'firebase-offline');
-            return;
-        }
-        
-        // ESP32 offline (padrão)
         banner.className = 'offline-banner visivel esp32-offline';
         banner.innerHTML = `📡 ESP32 OFFLINE — Sem comunicação há <span id="tempoOffline">--</span> segundos. Último dado recebido às <span id="ultimoDadoHora">---</span>`;
         
@@ -1029,7 +1036,12 @@
             "DESLIGADO MANUAL": "DESLIGADO MANUAL"
         };
 
-        onValue(ref(db, caminhoTempoReal), (snapshot) => {
+        if (firebaseListener) {
+            firebaseListener();
+            firebaseListener = null;
+        }
+
+        firebaseListener = onValue(ref(db, caminhoTempoReal), (snapshot) => {
             try {
                 const data = snapshot.val();
                 
@@ -1078,7 +1090,7 @@
             } catch (err) {
                 console.error('Erro tempo real:', err);
                 if (navigator.onLine) {
-                    mostrarOffline('firebase');
+                    mostrarOffline('esp32');
                 } else {
                     mostrarOffline('site');
                 }
@@ -1086,7 +1098,7 @@
         }, (err) => {
             console.error('Erro listener:', err);
             if (navigator.onLine) {
-                mostrarOffline('firebase');
+                mostrarOffline('esp32');
             } else {
                 mostrarOffline('site');
             }
@@ -1288,14 +1300,65 @@
 
     document.getElementById('btnApagarAntigos').addEventListener('click', () => window.apagarDadosAntigos());
 
-    // ===== MONITORAR MUDANÇAS DE CONECTIVIDADE =====
+    // ===== MONITORAR MUDANÇAS DE CONECTIVIDADE COM RECARGA AUTOMÁTICA =====
     window.addEventListener('online', () => {
-        console.log('🌐 Internet voltou!');
-        carregarHistorico();
+        console.log('🌐 Internet voltou! Aguardando 5 segundos para recarregar...');
+        
+        // Remove o banner imediatamente
+        mostrarOnline();
+        
+        // Limpa timeout anterior se existir
+        if (timeoutRecarga) {
+            clearTimeout(timeoutRecarga);
+            timeoutRecarga = null;
+        }
+        
+        // Mostra aviso de recarga
+        const aviso = document.createElement('div');
+        aviso.className = 'aviso-recarga';
+        aviso.id = 'avisoRecarga';
+        let contador = 5;
+        aviso.innerHTML = `
+            🌐 Internet restaurada!<br>
+            <span class="contador" id="contadorRecarga">${contador}</span><br>
+            <span class="sub">Recarregando em ${contador} segundos...</span>
+        `;
+        document.body.appendChild(aviso);
+        
+        // Atualiza contador a cada segundo
+        const intervalo = setInterval(() => {
+            contador--;
+            const contadorEl = document.getElementById('contadorRecarga');
+            const subEl = aviso.querySelector('.sub');
+            if (contadorEl) contadorEl.textContent = contador;
+            if (subEl) subEl.textContent = `Recarregando em ${contador} segundos...`;
+            if (contador <= 0) {
+                clearInterval(intervalo);
+            }
+        }, 1000);
+        
+        // Agenda recarga após 5 segundos
+        timeoutRecarga = setTimeout(() => {
+            const avisoEl = document.getElementById('avisoRecarga');
+            if (avisoEl) avisoEl.remove();
+            console.log('🔄 Recarregando página para reconectar Firebase...');
+            location.reload();
+        }, 5000);
     });
 
     window.addEventListener('offline', () => {
         console.log('🌐 Internet caiu!');
+        
+        // Cancela recarga agendada se houver
+        if (timeoutRecarga) {
+            clearTimeout(timeoutRecarga);
+            timeoutRecarga = null;
+        }
+        
+        // Remove aviso de recarga se existir
+        const aviso = document.getElementById('avisoRecarga');
+        if (aviso) aviso.remove();
+        
         mostrarOffline('site');
     });
 
