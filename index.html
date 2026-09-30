@@ -522,6 +522,12 @@
     let horasPeriodoAtivo = null;
     let ultimoTimestamp = null;
     let ultimoRecebidoMs = null;
+    // Os cartões em tempo real são atualizados a cada dado recebido do Firebase
+    // (a cada ~5s, conforme o firmware), mas o gráfico só deve ganhar um ponto
+    // novo a cada INTERVALO_MIN_GRAFICO_MS, para não poluir a linha com pontos
+    // em excesso.
+    const INTERVALO_MIN_GRAFICO_MS = 30000;
+    let ultimoPontoGraficoMs = 0;
     let timerOffline = null;
     let isOffline = false;
     let secaoEventosVisivel = false;
@@ -937,6 +943,10 @@
     function adicionarPontoGrafico(novoDado) {
         if (!grafico) return;
         if (isOffline) return;
+
+        const agoraMs = Date.now();
+        if (agoraMs - ultimoPontoGraficoMs < INTERVALO_MIN_GRAFICO_MS) return;
+        ultimoPontoGraficoMs = agoraMs;
 
         if (filtroAtivo) {
             if (horasPeriodoAtivo !== null) {
