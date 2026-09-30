@@ -858,25 +858,47 @@
         }
         if (grafico) {
             grafico.data.datasets = buildDatasets(dadosFiltrados);
-            grafico.options.scales = buildScales();
+            grafico.options.scales = buildScales(dadosFiltrados);
             grafico.update();
         }
         atualizarLegendaGrafico();
     };
 
+    // Extrator de valor por métrica, compartilhado entre o dataset e o cálculo de escala.
+    const camposMetrica = {
+        tensao: d => { let v = d.tensao; if (typeof v === 'string') v = parseFloat(v); return v || 0; },
+        corrente: d => d.corrente || 0,
+        frequencia: d => d.frequencia || 0,
+        potencia: d => d.potencia || 0,
+    };
+
+    // Calcula um intervalo [min, max] a partir dos valores reais, com uma margem
+    // proporcional (10%) acima e abaixo, e um piso mínimo de margem para o eixo
+    // não colar nos pontos quando a variação é muito pequena (ex: tensão estável
+    // entre 220 e 222V ainda precisa de alguma folga visual).
+    function calcularRangeEixo(valores, paddingMinimo) {
+        const validos = valores.filter(v => typeof v === 'number' && !isNaN(v));
+        if (validos.length === 0) return [0, 1];
+        let min = Math.min(...validos);
+        let max = Math.max(...validos);
+        const padding = Math.max((max - min) * 0.12, paddingMinimo);
+        return [min - padding, max + padding];
+    }
+
+    const yPos = { yV: 'left', yA: 'right', yHz: 'left', yW: 'right' };
+    const yLabels = { yV: 'Tensão (V)', yA: 'Corrente (A)', yHz: 'Freq (Hz)', yW: 'Potência (W)' };
+    const yColors = { yV: '#4DE8A0', yA: '#F2B84D', yHz: '#6FA8DC', yW: '#E8935B' };
+    const metricaToY = { tensao: 'yV', corrente: 'yA', frequencia: 'yHz', potencia: 'yW' };
+    // Margem mínima absoluta por eixo, na mesma unidade da grandeza.
+    const paddingMinimoPorEixo = { yV: 2, yA: 0.5, yHz: 0.3, yW: 20 };
+
     function buildDatasets(dados) {
         const dv = filtrarDadosValidos(dados);
-        const campos = {
-            tensao: d => { let v = d.tensao; if (typeof v === 'string') v = parseFloat(v); return v || 0; },
-            corrente: d => d.corrente || 0,
-            frequencia: d => d.frequencia || 0,
-            potencia: d => d.potencia || 0,
-        };
         return Object.entries(configsMetrica)
             .filter(([k]) => metricasAtivas[k])
             .map(([k, cfg]) => ({
                 label: cfg.label,
-                data: dv.map(campos[k]),
+                data: dv.map(camposMetrica[k]),
                 borderColor: cfg.color,
                 backgroundColor: cfg.color + '18',
                 borderWidth: 2,
@@ -888,33 +910,47 @@
             }));
     }
 
-    function buildScales() {
+    // Recebe os dados (do histórico ou do filtro atual) para que cada eixo Y
+    // se ajuste ao intervalo realmente observado, em vez de uma faixa fixa.
+    function buildScales(dados) {
+        const dv = filtrarDadosValidos(dados || []);
         // Canvas não resolve variáveis CSS (var(--...)) — precisa de cor literal,
         // senão o navegador usa preto como padrão silenciosamente.
         const scales = {
             x: { ticks: { color: '#8B93A1', maxTicksLimit: 10, maxRotation: 45 }, grid: { display: false } }
         };
-        const yRanges = { yV: [195, 245], yA: [0, 30], yHz: [57, 63], yW: [0, 6000] };
-        const yPos = { yV: 'left', yA: 'right', yHz: 'left', yW: 'right' };
-        const yLabels = { yV: 'Tensão (V)', yA: 'Corrente (A)', yHz: 'Freq (Hz)', yW: 'Potência (W)' };
-        const yColors = { yV: '#4DE8A0', yA: '#F2B84D', yHz: '#6FA8DC', yW: '#E8935B' };
-        const metricaToY = { tensao: 'yV', corrente: 'yA', frequencia: 'yHz', potencia: 'yW' };
         const activeYIDs = Object.entries(metricasAtivas).filter(([, v]) => v).map(([k]) => metricaToY[k]);
 
-        Object.entries(yRanges).forEach(([id, range]) => {
+        Object.entries(metricaToY).forEach(([metrica, id]) => {
             const isActive = activeYIDs.includes(id);
+            const valores = dv.map(camposMetrica[metrica]);
+            const [min, max] = calcularRangeEixo(valores, paddingMinimoPorEixo[id]);
             scales[id] = {
                 type: 'linear',
                 display: isActive,
                 position: yPos[id],
-                min: range[0],
-                max: range[1],
+                min, max,
                 title: { display: true, text: yLabels[id], color: yColors[id], font: { size: 11 } },
                 ticks: { color: yColors[id], font: { size: 10 }, maxTicksLimit: 6 },
                 grid: { display: false },
             };
         });
         return scales;
+    }
+
+    // Reajusta os limites dos eixos Y com base no que está atualmente plotado
+    // no gráfico (a janela visível de até MAX_PONTOS_GRAFICO pontos), chamada
+    // a cada novo ponto em tempo real — é o que dá o efeito de "zoom" seguindo
+    // a faixa real dos dados mais recentes.
+    function recalcularEixosGraficoAoVivo() {
+        if (!grafico) return;
+        grafico.data.datasets.forEach(ds => {
+            const [min, max] = calcularRangeEixo(ds.data, paddingMinimoPorEixo[ds.yAxisID] ?? 1);
+            if (grafico.options.scales[ds.yAxisID]) {
+                grafico.options.scales[ds.yAxisID].min = min;
+                grafico.options.scales[ds.yAxisID].max = max;
+            }
+        });
     }
 
     // ===== ATUALIZAR GRÁFICO (redesenho completo — usado para carga inicial e filtros) =====
@@ -963,7 +999,7 @@
                         }
                     }
                 },
-                scales: buildScales(),
+                scales: buildScales(dados),
                 interaction: { mode: 'index', intersect: false },
             }
         });
@@ -1023,6 +1059,7 @@
             grafico.data.datasets.forEach(ds => ds.data.shift());
         }
 
+        recalcularEixosGraficoAoVivo();
         grafico.update('none');
     }
 
