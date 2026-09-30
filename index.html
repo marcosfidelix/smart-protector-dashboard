@@ -578,7 +578,6 @@
     let ultimoRecebidoMs = null;
     let timerOffline = null;
     let isOffline = false;
-    let pontosAcumulados = 0;
     let secaoEventosVisivel = false;
     let firebaseListener = null;
     let timeoutRecarga = null;
@@ -644,7 +643,7 @@
 
         const lista = document.getElementById('listaEventos');
         const reversed = eventosValidos.reverse().slice(0, 20);
-        
+
         if (reversed.length === 0) {
             lista.innerHTML = '<p style="color:var(--text-secondary);">📭 Nenhum evento de desarme registrado.</p>';
             return;
@@ -686,10 +685,10 @@
     document.getElementById('btnAtualizarGrafico').addEventListener('click', async function() {
         const btn = this;
         const textoOriginal = btn.innerHTML;
-        
+
         btn.innerHTML = '⏳ Atualizando...';
         btn.disabled = true;
-        
+
         try {
             await carregarHistorico();
             if (filtroAtivo) {
@@ -725,10 +724,18 @@
     }
 
     // ===== AUXILIARES =====
+    // Normaliza o timestamp do ESP32 ("YYYY-MM-DD HH:MM:SS", com espaço) para o
+    // formato ISO-8601 ("YYYY-MM-DDTHH:MM:SS"), que o construtor Date() interpreta
+    // de forma confiável em todos os navegadores.
+    function normalizarTimestamp(ts) {
+        if (!ts) return ts;
+        return ts.includes('T') ? ts : ts.replace(' ', 'T');
+    }
+
     function formatarTimestamp(ts) {
         if (!ts) return '---';
         try {
-            const d = new Date(ts);
+            const d = new Date(normalizarTimestamp(ts));
             return isNaN(d.getTime()) ? ts : d.toLocaleString('pt-BR');
         } catch(e) { return ts; }
     }
@@ -736,9 +743,9 @@
     function atualizarStatusFirebase(conectado, msg, tipo = 'default') {
         const led = document.getElementById('statusLed');
         const text = document.getElementById('statusText');
-        
+
         led.classList.remove('connected', 'sem-internet');
-        
+
         if (conectado) {
             led.classList.add('connected');
             text.textContent = msg || '✅ Firebase Online';
@@ -785,34 +792,34 @@
     function mostrarOffline(tipo = 'esp32') {
         if (isOffline) return;
         isOffline = true;
-        
+
         const banner = document.getElementById('offlineBanner');
         const estadoEl = document.getElementById('estado');
         const sinalEl = document.getElementById('sinalWifi');
-        
+
         if (!navigator.onLine) {
             banner.className = 'offline-banner visivel sem-internet';
             banner.innerHTML = `🌐 SEM INTERNET — Verifique sua conexão com a internet!`;
-            
+
             estadoEl.innerText = 'SEM INTERNET';
             estadoEl.style.color = '#ffaa44';
-            
+
             sinalEl.innerHTML = '🌐 Offline';
             sinalEl.style.color = '#ffaa44';
-            
+
             atualizarStatusFirebase(false, '🌐 Sem Internet', 'sem-internet');
             return;
         }
-        
+
         banner.className = 'offline-banner visivel esp32-offline';
         banner.innerHTML = `📡 ESP32 OFFLINE — Sem comunicação há <span id="tempoOffline">--</span> segundos. Último dado recebido às <span id="ultimoDadoHora">---</span>`;
-        
+
         estadoEl.innerText = 'ESP32 OFF';
         estadoEl.style.color = '#ff4444';
-        
+
         sinalEl.innerHTML = '📵 OFFLINE';
         sinalEl.style.color = '#555';
-        
+
         atualizarStatusFirebase(false, '⚠️ ESP32 Offline', 'esp32-offline');
     }
 
@@ -820,15 +827,15 @@
     function mostrarOnline() {
         if (!isOffline) return;
         isOffline = false;
-        
+
         const banner = document.getElementById('offlineBanner');
         banner.className = 'offline-banner';
         banner.innerHTML = '';
-        
+
         ['tensao', 'frequencia', 'corrente', 'potencia', 'fp'].forEach(id => {
             document.getElementById(id).style.color = '';
         });
-        
+
         atualizarStatusFirebase(true, "✅ ESP32 Online");
     }
 
@@ -838,7 +845,7 @@
         timerOffline = setInterval(() => {
             if (!ultimoRecebidoMs) return;
             const segundos = Math.floor((Date.now() - ultimoRecebidoMs) / 1000);
-            
+
             if (segundos > LIMITE_OFFLINE_S) {
                 mostrarOffline('esp32');
                 document.getElementById('tempoOffline').innerText = segundos;
@@ -944,15 +951,15 @@
         return scales;
     }
 
-    // ===== ATUALIZAR GRÁFICO =====
+    // ===== ATUALIZAR GRÁFICO (redesenho completo — usado para carga inicial e filtros) =====
     function atualizarGrafico(dados) {
         const dv = filtrarDadosValidos(dados);
-        if (dv.length === 0) { 
-            if (grafico) { 
-                grafico.destroy(); 
-                grafico = null; 
-            } 
-            return; 
+        if (dv.length === 0) {
+            if (grafico) {
+                grafico.destroy();
+                grafico = null;
+            }
+            return;
         }
 
         const labels = dv.map(d => {
@@ -960,19 +967,19 @@
             return m ? m[1] + ':' + m[2] : '--:--';
         });
 
-        if (grafico) { 
-            grafico.destroy(); 
-            grafico = null; 
+        if (grafico) {
+            grafico.destroy();
+            grafico = null;
         }
 
         grafico = new Chart(document.getElementById('grafico'), {
             type: 'line',
-            data: { 
-                labels: labels, 
-                datasets: buildDatasets(dados) 
+            data: {
+                labels: labels,
+                datasets: buildDatasets(dados)
             },
             options: {
-                responsive: true, 
+                responsive: true,
                 maintainAspectRatio: true,
                 animation: { duration: 300 },
                 plugins: { legend: { display: false } },
@@ -980,30 +987,33 @@
                 interaction: { mode: 'index', intersect: false },
             }
         });
-        
+
         atualizarLegendaGrafico();
     }
 
-    // ===== ADICIONAR PONTO EM TEMPO REAL =====
+    // ===== ADICIONAR PONTO EM TEMPO REAL (CORRIGIDO) =====
+    // Antes, com filtro ativo (que já entra ligado na inicialização), o ponto só
+    // era aceito a cada 3ª leitura e dependia de um parsing de data frágil — na
+    // prática o gráfico quase nunca atualizava sozinho. Agora todo ponto que
+    // chega do Firebase é inserido direto no gráfico (via push + update('none'),
+    // sem redesenho completo), e o filtro de período só decide SE o ponto deve
+    // entrar, nunca COMO ele entra.
     function adicionarPontoGrafico(novoDado) {
         if (!grafico) return;
         if (isOffline) return;
 
+        if (filtroAtivo) {
+            const tsNormalizado = normalizarTimestamp(novoDado.timestamp || novoDado.dataHora || '');
+            const dataItem = new Date(tsNormalizado);
+            if (isNaN(dataItem.getTime()) || dataItem < dataInicioFiltro || dataItem > dataFimFiltro) {
+                return;
+            }
+            dadosFiltrados.push(novoDado);
+        }
+
         const ts = novoDado.timestamp || '';
         const m = ts.match(/(\d{2}):(\d{2}):\d{2}/);
         const label = m ? m[1] + ':' + m[2] : new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-
-        if (filtroAtivo) {
-            pontosAcumulados++;
-            if (pontosAcumulados % 3 === 0) {
-                const dataItem = new Date(novoDado.timestamp || novoDado.dataHora);
-                if (dataItem >= dataInicioFiltro && dataItem <= dataFimFiltro) {
-                    dadosFiltrados.push(novoDado);
-                    atualizarGrafico(dadosFiltrados);
-                }
-            }
-            return;
-        }
 
         grafico.data.labels.push(label);
 
@@ -1044,7 +1054,7 @@
         firebaseListener = onValue(ref(db, caminhoTempoReal), (snapshot) => {
             try {
                 const data = snapshot.val();
-                
+
                 if (!data) {
                     if (navigator.onLine) {
                         mostrarOffline('esp32');
@@ -1117,13 +1127,13 @@
                 return;
             }
             dadosCompletos = Object.entries(rawData).map(([key, val]) => ({ id: key, ...val }));
-            dadosCompletos.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+            dadosCompletos.sort((a, b) => new Date(normalizarTimestamp(a.timestamp)) - new Date(normalizarTimestamp(b.timestamp)));
             dadosFiltrados = [...dadosCompletos];
             atualizarTabela(dadosFiltrados);
             atualizarEstatisticas(dadosFiltrados);
             atualizarGrafico(dadosFiltrados);
             atualizarStatusFirebase(true, `✅ ${dadosCompletos.length} registros`);
-            
+
             if (secaoEventosVisivel) {
                 atualizarEventos();
             }
@@ -1139,14 +1149,13 @@
             dadosFiltrados = [...dadosCompletos];
         } else {
             dadosFiltrados = dadosCompletos.filter(item => {
-                const d = new Date(item.timestamp || item.dataHora);
+                const d = new Date(normalizarTimestamp(item.timestamp || item.dataHora));
                 return isNaN(d.getTime()) || (d >= dataInicioFiltro && d <= dataFimFiltro);
             });
         }
         atualizarTabela(dadosFiltrados);
         atualizarEstatisticas(dadosFiltrados);
         atualizarGrafico(dadosFiltrados);
-        pontosAcumulados = 0;
     }
 
     function formatarDateTimeLocal(date) {
@@ -1263,7 +1272,7 @@
             const updates = {};
             let apagados = 0, mantidos = 0;
             for (const item of dadosCompletos) {
-                if (new Date(item.timestamp) < limite && item.id) {
+                if (new Date(normalizarTimestamp(item.timestamp)) < limite && item.id) {
                     updates[`${caminhoHistorico}/${item.id}`] = null;
                     apagados++;
                 } else { mantidos++; }
@@ -1303,17 +1312,14 @@
     // ===== MONITORAR MUDANÇAS DE CONECTIVIDADE COM RECARGA AUTOMÁTICA =====
     window.addEventListener('online', () => {
         console.log('🌐 Internet voltou! Aguardando 5 segundos para recarregar...');
-        
-        // Remove o banner imediatamente
+
         mostrarOnline();
-        
-        // Limpa timeout anterior se existir
+
         if (timeoutRecarga) {
             clearTimeout(timeoutRecarga);
             timeoutRecarga = null;
         }
-        
-        // Mostra aviso de recarga
+
         const aviso = document.createElement('div');
         aviso.className = 'aviso-recarga';
         aviso.id = 'avisoRecarga';
@@ -1324,8 +1330,7 @@
             <span class="sub">Recarregando em ${contador} segundos...</span>
         `;
         document.body.appendChild(aviso);
-        
-        // Atualiza contador a cada segundo
+
         const intervalo = setInterval(() => {
             contador--;
             const contadorEl = document.getElementById('contadorRecarga');
@@ -1336,8 +1341,7 @@
                 clearInterval(intervalo);
             }
         }, 1000);
-        
-        // Agenda recarga após 5 segundos
+
         timeoutRecarga = setTimeout(() => {
             const avisoEl = document.getElementById('avisoRecarga');
             if (avisoEl) avisoEl.remove();
@@ -1348,17 +1352,15 @@
 
     window.addEventListener('offline', () => {
         console.log('🌐 Internet caiu!');
-        
-        // Cancela recarga agendada se houver
+
         if (timeoutRecarga) {
             clearTimeout(timeoutRecarga);
             timeoutRecarga = null;
         }
-        
-        // Remove aviso de recarga se existir
+
         const aviso = document.getElementById('avisoRecarga');
         if (aviso) aviso.remove();
-        
+
         mostrarOffline('site');
     });
 
