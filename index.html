@@ -259,6 +259,10 @@
         /* ===== GRÁFICO ===== */
         .grafico-container {
             background: var(--bg-scope);
+            background-image:
+                linear-gradient(rgba(77,232,160,0.09) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(77,232,160,0.09) 1px, transparent 1px);
+            background-size: 32px 32px;
             border: 1px solid var(--border-color);
             border-radius: 3px; padding: 20px;
             margin-bottom: 20px;
@@ -888,7 +892,7 @@
         // Canvas não resolve variáveis CSS (var(--...)) — precisa de cor literal,
         // senão o navegador usa preto como padrão silenciosamente.
         const scales = {
-            x: { ticks: { color: '#8B93A1', maxTicksLimit: 10, maxRotation: 45 }, grid: { color: 'rgba(77,232,160,0.10)' } }
+            x: { ticks: { color: '#8B93A1', maxTicksLimit: 10, maxRotation: 45 }, grid: { display: false } }
         };
         const yRanges = { yV: [195, 245], yA: [0, 30], yHz: [57, 63], yW: [0, 6000] };
         const yPos = { yV: 'left', yA: 'right', yHz: 'left', yW: 'right' };
@@ -907,7 +911,7 @@
                 max: range[1],
                 title: { display: true, text: yLabels[id], color: yColors[id], font: { size: 11 } },
                 ticks: { color: yColors[id], font: { size: 10 }, maxTicksLimit: 6 },
-                grid: { drawOnChartArea: activeYIDs[0] === id, color: 'rgba(77,232,160,0.10)' },
+                grid: { display: false },
             };
         });
         return scales;
