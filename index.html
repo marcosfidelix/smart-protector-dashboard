@@ -145,16 +145,6 @@
         .btn-filtro:hover { background: #00ff88; color: #0f0f1a; }
         .btn-filtro .seta { transition: transform 0.3s; }
         .btn-filtro.aberto .seta { transform: rotate(180deg); }
-        .btn-atualizar {
-            border-color: #ffaa44 !important;
-            color: #ffaa44 !important;
-        }
-        .btn-atualizar:hover {
-            background: #ffaa44 !important;
-            color: #0f0f1a !important;
-        }
-        .btn-atualizar:disabled { opacity: 0.5; cursor: not-allowed; }
-
         .btn-eventos {
             background: transparent;
             border: 1px solid #ffaa44;
@@ -386,9 +376,6 @@
             <span>📅</span> Filtrar por Período
             <span class="seta">▼</span>
         </button>
-        <button class="btn-filtro btn-atualizar" id="btnAtualizarGrafico">
-            🔄 Atualizar Gráfico
-        </button>
         <button class="btn-eventos" id="btnToggleEventos">
             📋 Eventos
         </button>
@@ -400,6 +387,7 @@
             <div class="periodo-predefinido">
                 <button onclick="aplicarPeriodoPredefinido(0.5)">🕐 Últimos 30 min</button>
                 <button onclick="aplicarPeriodoPredefinido(1)">🕐 Última hora</button>
+                <button onclick="aplicarPeriodoPredefinido(3)">🕒 Últimas 3 horas</button>
                 <button onclick="aplicarPeriodoPredefinido(6)">🕕 Últimas 6 horas</button>
                 <button onclick="aplicarPeriodoPredefinido(24)">📆 Últimas 24 horas</button>
             </div>
@@ -489,7 +477,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getDatabase, ref, onValue, query, limitToLast, get, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+    import { getDatabase, ref, onValue, query, limitToLast, get, update, orderByChild, endAt } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyCrTIZNk9aZxVHhYyOvBo3jdLX3GQ16jsk",
@@ -620,41 +608,6 @@
         document.getElementById('btnToggleFiltro').classList.toggle('aberto');
     });
 
-    // ===== BOTÃO ATUALIZAR GRÁFICO =====
-    document.getElementById('btnAtualizarGrafico').addEventListener('click', async function() {
-        const btn = this;
-        const textoOriginal = btn.innerHTML;
-
-        btn.innerHTML = '⏳ Atualizando...';
-        btn.disabled = true;
-
-        try {
-            await carregarHistorico();
-            if (horasPeriodoAtivo !== null) {
-                // Período rápido: reaplica para recalcular a janela relativa ao "agora"
-                aplicarPeriodoPredefinido(horasPeriodoAtivo);
-            } else if (filtroAtivo) {
-                filtrarPorPeriodo();
-            } else {
-                atualizarGrafico(dadosCompletos);
-                atualizarEstatisticas(dadosCompletos);
-                atualizarTabela(dadosCompletos);
-            }
-            btn.innerHTML = '✅ Atualizado!';
-            setTimeout(() => {
-                btn.innerHTML = textoOriginal;
-                btn.disabled = false;
-            }, 1500);
-        } catch (error) {
-            console.error('Erro ao atualizar:', error);
-            btn.innerHTML = '❌ Erro!';
-            setTimeout(() => {
-                btn.innerHTML = textoOriginal;
-                btn.disabled = false;
-            }, 2000);
-        }
-    });
-
     // ===== FILTRO INTELIGENTE =====
     function filtrarDadosValidos(dados) {
         if (!dados || dados.length === 0) return [];
@@ -672,6 +625,16 @@
     function normalizarTimestamp(ts) {
         if (!ts) return ts;
         return ts.includes('T') ? ts : ts.replace(' ', 'T');
+    }
+
+    // Converte uma data JS para o mesmo formato de texto que o ESP32 grava
+    // ("YYYY-MM-DD HH:MM:SS", zero-padded). O Firebase Realtime Database ordena
+    // campos de texto lexicograficamente, e esse formato fixo e zero-padded
+    // ordena na mesma sequência cronológica — por isso é seguro usá-lo em
+    // orderByChild('timestamp') + endAt() para buscar por intervalo de data.
+    function formatarTimestampParaConsulta(date) {
+        const pad = n => String(n).padStart(2, '0');
+        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
     }
 
     function formatarTimestamp(ts) {
@@ -1073,7 +1036,9 @@
         const tbody = document.getElementById('tbody');
         tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;"><div class="loading"></div> 🔄 Carregando...</td></tr>`;
         try {
-            const snap = await get(query(ref(db, caminhoHistorico), limitToLast(5000)));
+            // O firmware grava um registro a cada 30s; 10.000 registros cobrem
+            // cerca de 3,5 dias, com folga sobre os 3 dias de coleta planejados.
+            const snap = await get(query(ref(db, caminhoHistorico), limitToLast(10000)));
             const rawData = snap.val();
             if (!rawData) {
                 tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;">📭 Nenhum registro no histórico</td></tr>';
@@ -1225,16 +1190,29 @@
         btn.innerText = '⏳ Apagando...';
         btn.disabled = true;
         try {
-            const updates = {};
-            let apagados = 0, mantidos = 0;
-            for (const item of dadosCompletos) {
-                if (new Date(normalizarTimestamp(item.timestamp)) < limite && item.id) {
-                    updates[`${caminhoHistorico}/${item.id}`] = null;
-                    apagados++;
-                } else { mantidos++; }
+            // Consulta o Firebase DIRETAMENTE por data, em vez de filtrar
+            // dadosCompletos (que só contém os registros mais recentes já
+            // carregados no dashboard). Isso garante que registros antigos
+            // "fora da janela visível" também sejam encontrados e apagados.
+            const limiteConsulta = formatarTimestampParaConsulta(limite);
+            const snap = await get(
+                query(ref(db, caminhoHistorico), orderByChild('timestamp'), endAt(limiteConsulta))
+            );
+            const dadosAntigos = snap.val();
+
+            if (!dadosAntigos) {
+                alert("📭 Nenhum registro antigo encontrado para apagar.");
+                return;
             }
-            if (apagados > 0) await update(ref(db), updates);
-            alert(`✅ Concluído!\n🗑️ Apagados: ${apagados}\n📦 Mantidos: ${mantidos}`);
+
+            const updates = {};
+            let apagados = 0;
+            for (const key in dadosAntigos) {
+                updates[`${caminhoHistorico}/${key}`] = null;
+                apagados++;
+            }
+            await update(ref(db), updates);
+            alert(`✅ Concluído!\n🗑️ Apagados: ${apagados}`);
             await carregarHistorico();
         } catch (err) {
             alert("❌ Erro: " + err.message);
