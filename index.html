@@ -24,23 +24,6 @@
             --banner-text: #ffaaaa;
         }
 
-        [data-theme="light"] {
-            --bg-primary: #f0f0f5;
-            --bg-secondary: #ffffff;
-            --bg-card: #ffffff;
-            --bg-input: #f0f0f5;
-            --text-primary: #1a1a2e;
-            --text-secondary: #555;
-            --text-muted: #999;
-            --border-color: #ddd;
-            --shadow: 0 4px 15px rgba(0,0,0,0.1);
-            --scrollbar-track: #f0f0f5;
-            --scrollbar-thumb: #ddd;
-            --banner-bg: #ffdddd;
-            --banner-border: #ff4444;
-            --banner-text: #cc0000;
-        }
-
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: var(--scrollbar-track); }
         ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 4px; }
@@ -65,10 +48,6 @@
             background: rgba(0,0,0,0.7); padding: 8px 15px;
             border-radius: 20px; backdrop-filter: blur(5px);
             z-index: 1000; font-size: 12px;
-        }
-        [data-theme="light"] .firebase-status {
-            background: rgba(255,255,255,0.9);
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
         .status-led {
             width: 10px; height: 10px; border-radius: 50%;
@@ -102,15 +81,6 @@
             border: 1px solid #ffaa44;
             color: #ffddaa;
         }
-        [data-theme="light"] .offline-banner.esp32-offline {
-            background: #ffdddd;
-            color: #cc0000;
-        }
-        [data-theme="light"] .offline-banner.sem-internet {
-            background: #ffeecc;
-            color: #996600;
-        }
-
         .valor-offline { color: var(--text-muted) !important; }
 
         /* ===== AVISO DE RECARGA ===== */
@@ -130,10 +100,6 @@
             text-align: center;
             animation: fadeIn 0.3s ease;
         }
-        [data-theme="light"] .aviso-recarga {
-            background: #00cc66;
-            color: #ffffff;
-        }
         @keyframes fadeIn {
             from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
             to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
@@ -142,7 +108,6 @@
             font-size: 32px;
             color: #0f0f1a;
         }
-        [data-theme="light"] .aviso-recarga .contador { color: #ffffff; }
         .aviso-recarga .sub {
             font-size: 14px;
             opacity: 0.7;
@@ -189,21 +154,6 @@
             color: #0f0f1a !important;
         }
         .btn-atualizar:disabled { opacity: 0.5; cursor: not-allowed; }
-
-        .btn-tema {
-            background: transparent;
-            border: 1px solid var(--text-secondary);
-            color: var(--text-secondary);
-            padding: 8px 16px;
-            border-radius: 25px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.3s;
-        }
-        .btn-tema:hover {
-            background: var(--text-secondary);
-            color: var(--bg-primary);
-        }
 
         .btn-eventos {
             background: transparent;
@@ -296,11 +246,6 @@
         .btn-metrica.ativo-frequencia { border-color: #EF9F27; background: #2a1e05; color: #fac775; }
         .btn-metrica.ativo-potencia { border-color: #D85A30; background: #2a0f05; color: #f09975; }
 
-        [data-theme="light"] .btn-metrica.ativo-tensao { background: #d4e8ff; color: #1a5a8a; }
-        [data-theme="light"] .btn-metrica.ativo-corrente { background: #d4f5e8; color: #1a6a4a; }
-        [data-theme="light"] .btn-metrica.ativo-frequencia { background: #fff0d4; color: #8a6a1a; }
-        [data-theme="light"] .btn-metrica.ativo-potencia { background: #ffddd4; color: #8a3a1a; }
-
         canvas { max-height: 400px; width: 100%; }
 
         /* ===== STATS ===== */
@@ -330,7 +275,6 @@
             transition: background 0.3s;
         }
         tr:hover { background: var(--bg-primary); }
-        [data-theme="light"] th { background: #e8e8ee; }
 
         /* ===== EXPORTAR ===== */
         .exportar { margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
@@ -392,8 +336,6 @@
             z-index: 999; font-family: monospace; text-align: right;
             backdrop-filter: blur(2px);
         }
-        [data-theme="light"] .watermark { background: rgba(255,255,255,0.3); }
-
         .atualizacao { text-align: center; margin-top: 20px; font-size: 11px; color: var(--text-secondary); }
         .error-msg { color: #ff4444; text-align: center; margin-top: 10px; font-size: 12px; }
         .loading { display: inline-block; width: 20px; height: 20px; border: 2px solid #00ff88; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; }
@@ -450,7 +392,6 @@
         <button class="btn-eventos" id="btnToggleEventos">
             📋 Eventos
         </button>
-        <button class="btn-tema" id="btnToggleTema">🌙 Tema</button>
     </div>
 
     <div class="painel-filtro" id="painelFiltro">
@@ -574,6 +515,11 @@
     let filtroAtivo = false;
     let dataInicioFiltro = null;
     let dataFimFiltro = null;
+    // Quando um período rápido (30 min, 1h, 6h, 24h) está ativo, guarda o número
+    // de horas aqui para recalcular a janela relativa ao "agora" a cada uso —
+    // evitando que ela fique presa ao instante em que o filtro foi aplicado.
+    // Fica null quando não há filtro ou quando o período é personalizado (datas fixas).
+    let horasPeriodoAtivo = null;
     let ultimoTimestamp = null;
     let ultimoRecebidoMs = null;
     let timerOffline = null;
@@ -581,19 +527,6 @@
     let secaoEventosVisivel = false;
     let firebaseListener = null;
     let timeoutRecarga = null;
-
-    // ===== TEMA =====
-    document.getElementById('btnToggleTema').addEventListener('click', () => {
-        const html = document.documentElement;
-        const btn = document.getElementById('btnToggleTema');
-        if (html.getAttribute('data-theme') === 'light') {
-            html.removeAttribute('data-theme');
-            btn.textContent = '🌙 Tema';
-        } else {
-            html.setAttribute('data-theme', 'light');
-            btn.textContent = '☀️ Tema';
-        }
-    });
 
     // ===== TOGGLE EVENTOS =====
     document.getElementById('btnToggleEventos').addEventListener('click', function() {
@@ -691,7 +624,10 @@
 
         try {
             await carregarHistorico();
-            if (filtroAtivo) {
+            if (horasPeriodoAtivo !== null) {
+                // Período rápido: reaplica para recalcular a janela relativa ao "agora"
+                aplicarPeriodoPredefinido(horasPeriodoAtivo);
+            } else if (filtroAtivo) {
                 filtrarPorPeriodo();
             } else {
                 atualizarGrafico(dadosCompletos);
@@ -1003,6 +939,13 @@
         if (isOffline) return;
 
         if (filtroAtivo) {
+            if (horasPeriodoAtivo !== null) {
+                // Período rápido ativo: desliza a janela para o instante atual antes de
+                // decidir se o ponto entra, em vez de comparar contra a janela congelada
+                // no momento em que o filtro foi originalmente aplicado.
+                dataFimFiltro = new Date();
+                dataInicioFiltro = new Date(dataFimFiltro.getTime() - horasPeriodoAtivo * 3600000);
+            }
             const tsNormalizado = normalizarTimestamp(novoDado.timestamp || novoDado.dataHora || '');
             const dataItem = new Date(tsNormalizado);
             if (isNaN(dataItem.getTime()) || dataItem < dataInicioFiltro || dataItem > dataFimFiltro) {
@@ -1164,6 +1107,7 @@
 
     window.aplicarPeriodoPredefinido = function(horas) {
         filtroAtivo = true;
+        horasPeriodoAtivo = horas;
         const agora = new Date();
         dataFimFiltro = agora;
         dataInicioFiltro = new Date(agora.getTime() - horas * 3600000);
@@ -1177,6 +1121,7 @@
         const f = document.getElementById('dataFim').value;
         if (!i || !f) { alert("⚠️ Selecione início e fim!"); return; }
         filtroAtivo = true;
+        horasPeriodoAtivo = null; // período personalizado usa datas fixas, não desliza
         dataInicioFiltro = new Date(i);
         dataFimFiltro = new Date(f);
         if (dataInicioFiltro > dataFimFiltro) { alert("⚠️ Data início maior que fim!"); return; }
@@ -1185,6 +1130,7 @@
 
     window.limparFiltroPersonalizado = function() {
         filtroAtivo = false;
+        horasPeriodoAtivo = null;
         dataInicioFiltro = dataFimFiltro = null;
         document.getElementById('dataInicio').value = '';
         document.getElementById('dataFim').value = '';
